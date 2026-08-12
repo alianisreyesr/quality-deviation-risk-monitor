@@ -369,3 +369,26 @@
 2026-08-12 21:40:13 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
 2026-08-12 21:40:13 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
 2026-08-12 21:40:13 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
+2026-08-12 21:40:52 - app.main - INFO - [main.py:135] - Retrieved 30 deviations
+2026-08-12 21:40:52 - app.main - INFO - [main.py:135] - Retrieved 30 deviations
+2026-08-12 21:40:52 - app.main - INFO - [main.py:130] - Filtered 16 records at High risk level (from 30 total)
+2026-08-12 21:40:52 - app.main - INFO - [main.py:135] - Retrieved 16 deviations
+2026-08-12 21:40:52 - app.main - INFO - [main.py:130] - Filtered 11 records at Low risk level (from 30 total)
+2026-08-12 21:40:52 - app.main - INFO - [main.py:135] - Retrieved 11 deviations
+2026-08-12 21:40:52 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
+2026-08-12 21:40:52 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
+2026-08-12 21:40:52 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
+2026-08-12 21:40:52 - app.main - INFO - [main.py:26] - Starting application initialization...
+2026-08-12 21:40:52 - app.database - INFO - [database.py:50] - Initializing database schema and data...
+2026-08-12 21:40:52 - app.database - INFO - [database.py:57] - Database already contains 30 records
+2026-08-12 21:40:52 - app.main - INFO - [main.py:28] - Application successfully initialized
+2026-08-12 21:40:52 - app.main - INFO - [main.py:130] - Filtered 16 records at High risk level (from 30 total)
+2026-08-12 21:40:52 - app.main - INFO - [main.py:135] - Retrieved 16 deviations
+2026-08-12 21:40:52 - app.main - INFO - [main.py:205] - Summary: 30 total, Risk={'Low': 11, 'Medium': 3, 'High': 16}, Review statuses=['Closed', 'Escalated', 'In Review', 'Not Started', 'Pending Review'], Overdue=15, Unassigned=6
+2026-08-12 21:40:52 - app.main - INFO - [main.py:33] - Shutting down application
+2026-08-12 21:40:52 - app.main - INFO - [main.py:26] - Starting application initialization...
+2026-08-12 21:40:52 - app.database - INFO - [database.py:50] - Initializing database schema and data...
+2026-08-12 21:40:52 - app.database - INFO - [database.py:57] - Database already contains 30 records
+2026-08-12 21:40:52 - app.main - INFO - [main.py:28] - Application successfully initialized
+2026-08-12 21:40:52 - app.main - WARNING - [main.py:166] - Deviation DEV-DOES-NOT-EXIST not found
+2026-08-12 21:40:52 - app.main - INFO - [main.py:33] - Shutting down application
