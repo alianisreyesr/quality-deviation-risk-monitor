@@ -3,6 +3,7 @@ from datetime import date
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -34,10 +35,18 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Quality Deviation Risk Monitor", description="Portfolio-safe API using synthetic data and transparent risk rules.", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, lambda request, exc: HTTPException(
-    status_code=429,
-    detail="Rate limit exceeded: 100 requests per minute per IP"
-))
+
+# Rate limit error handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Rate limit exceeded: 100 requests per minute per IP",
+            "retry_after": 60
+        }
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
