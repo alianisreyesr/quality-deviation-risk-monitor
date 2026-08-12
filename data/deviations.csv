@@ -5,27 +5,27 @@ DEV-1003,Label reconciliation discrepancy,Low,2026-08-01,2026-08-25,Avery Cruz,F
 DEV-1004,Equipment log entry mismatch,High,2026-07-10,2026-08-01,Morgan Diaz,True,False,Pending Review
 DEV-1005,Incomplete change-control attachment,Medium,2026-08-04,2026-09-05,Sam Patel,False,True,Not Started
 DEV-1006,Repeat access-review exception,High,2026-07-15,2026-07-30,,True,True,Escalated
-DEV-1007,Batch record signature missing,High,2026-07-20,2026-08-05,,True,False,Pending Review
-DEV-1008,Raw material CoA not attached,Medium,2026-07-22,2026-08-15,Riley Nguyen,False,False,Not Started
-DEV-1009,Calibration certificate expired,High,2026-06-30,2026-07-25,Jamie Brooks,True,True,Escalated
-DEV-1010,Environmental monitoring overdue,Medium,2026-07-28,2026-08-20,Taylor Kim,False,True,In Review
-DEV-1011,Unreviewed audit trail entry,High,2026-07-05,2026-07-28,,True,False,Pending Review
-DEV-1012,Stability sample documentation gap,Low,2026-08-02,2026-09-10,Alex Mora,False,True,In Review
-DEV-1013,SOP version mismatch during execution,Medium,2026-07-18,2026-08-10,Casey Wade,True,True,Pending Review
-DEV-1014,Discrepant yield reconciliation,High,2026-07-12,2026-08-02,,False,False,Escalated
-DEV-1015,Deviation closed without root cause,High,2026-06-25,2026-07-15,Jordan Lee,True,False,Pending Review
-DEV-1016,Instrument out-of-specification result not flagged,High,2026-07-30,2026-08-18,,True,False,Not Started
-DEV-1017,Vendor qualification record incomplete,Medium,2026-08-03,2026-09-01,Sam Patel,False,False,Not Started
-DEV-1018,Cleaning validation log missing,Medium,2026-07-25,2026-08-22,Morgan Diaz,False,True,In Review
-DEV-1019,Change control not linked to deviation,Low,2026-08-05,2026-09-15,Avery Cruz,False,True,Not Started
-DEV-1020,Duplicate batch number entered,High,2026-07-08,2026-07-22,Riley Nguyen,True,True,Closed
-DEV-1021,Product release checklist incomplete,Medium,2026-08-06,2026-09-03,Taylor Kim,False,False,Pending Review
-DEV-1022,Retest period not updated in system,Low,2026-08-07,2026-09-20,Jamie Brooks,False,True,Not Started
-DEV-1023,Compressed air particulate exceedance,High,2026-07-14,2026-07-31,,True,False,Escalated
-DEV-1024,Material reconciliation discrepancy greater than threshold,High,2026-07-02,2026-07-20,,True,False,Pending Review
-DEV-1025,Training records not current for operator,Medium,2026-07-27,2026-08-17,Casey Wade,True,True,In Review
-DEV-1026,Backup system failure not documented,Low,2026-08-08,2026-09-18,Alex Mora,False,True,Not Started
-DEV-1027,Quarantine label removed prematurely,High,2026-07-16,2026-08-04,Jordan Lee,False,False,Closed
-DEV-1028,Electronic signature not linked to record,High,2026-07-03,2026-07-21,,True,False,Escalated
-DEV-1029,Reagent expiry not verified before use,Medium,2026-08-01,2026-08-28,Riley Nguyen,False,True,Pending Review
-DEV-1030,Procedure review cycle overdue,Low,2026-08-09,2026-09-25,Taylor Kim,False,True,Not Started
+DEV-1007,Calibration certificate filing delay,Medium,2026-08-02,2026-08-10,Taylor Morgan,False,True,In Review
+DEV-1008,Environmental monitoring alert review,High,2026-07-22,2026-08-08,Riley Chen,False,True,Pending Review
+DEV-1009,Minor batch record correction,Low,2026-08-05,2026-08-28,Casey Rivera,False,True,Closed
+DEV-1010,Audit trail review incomplete,High,2026-07-28,2026-08-05,,True,False,Escalated
+DEV-1011,Procedure revision routing delay,Medium,2026-08-06,2026-08-20,Jamie Park,False,True,In Review
+DEV-1012,Raw material status label issue,High,2026-07-12,2026-07-29,Drew Wilson,True,True,Pending Review
+DEV-1013,Training matrix metadata gap,Low,2026-08-07,2026-09-12,Alex Gomez,False,False,Not Started
+DEV-1014,Preventive maintenance overdue,High,2026-07-20,2026-08-03,Quinn Lewis,True,True,Escalated
+DEV-1015,Document approval workflow delay,Medium,2026-08-03,2026-08-18,Robin King,False,True,Pending Review
+DEV-1016,Component traceability review,Medium,2026-08-08,2026-09-01,,False,False,Not Started
+DEV-1017,Electronic signature review,High,2026-07-25,2026-08-06,Hayden Brooks,False,True,In Review
+DEV-1018,Visual inspection checklist gap,Low,2026-08-09,2026-09-15,Emerson Bell,False,True,Not Started
+DEV-1019,Repeat cleaning verification event,High,2026-07-30,2026-08-09,Logan Price,True,True,Pending Review
+DEV-1020,Change control impact assessment,Medium,2026-08-10,2026-08-26,Parker Smith,False,True,In Review
+DEV-1021,Data backup evidence missing,High,2026-07-18,2026-08-02,,False,False,Escalated
+DEV-1022,Warehouse temperature mapping note,Low,2026-08-11,2026-09-20,Reese Carter,False,True,Not Started
+DEV-1023,Investigation CAPA linkage gap,High,2026-07-26,2026-08-07,Cameron Flores,True,False,Pending Review
+DEV-1024,Sampling plan attachment delay,Medium,2026-08-02,2026-08-16,Blair Scott,False,True,In Review
+DEV-1025,User access recertification,Medium,2026-08-01,2026-08-11,,True,True,Pending Review
+DEV-1026,Logbook archival classification,Low,2026-08-12,2026-09-25,Devon Young,False,True,Not Started
+DEV-1027,Repeat utility monitoring deviation,High,2026-07-14,2026-07-31,Finley Adams,True,True,Escalated
+DEV-1028,Equipment cleaning record review,Medium,2026-08-05,2026-08-22,Rowan Gray,False,False,Pending Review
+DEV-1029,Stability chamber alarm follow-up,High,2026-07-16,2026-08-04,Charlie Reed,False,True,In Review
+DEV-1030,Annual product quality review input,Low,2026-08-12,2026-10-01,Skyler Moore,False,True,Not Started

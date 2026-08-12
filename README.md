@@ -1,29 +1,31 @@
 # Quality Deviation Risk Monitor
 
-A portfolio-safe prototype that turns synthetic quality-deviation records into transparent, rule-based risk signals. It demonstrates how data engineering, data integrity, and human review can support proactive quality oversight in regulated environments.
+[![CI](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/ci.yml)
 
-> **Confidentiality notice:** This project uses fictional data and simplified rules created exclusively for portfolio purposes. It does not contain proprietary information, code, processes, or data from any current or former employer.
+A portfolio-safe, full-stack prototype that prioritizes **synthetic quality-deviation records** with transparent, rule-based risk signals. It demonstrates data engineering, API design, explainable prioritization, and control-oriented documentation for regulated-quality contexts.
 
-## Why this project
-
-Quality teams often need to prioritize open deviations before periodic reporting cycles. This prototype provides a lightweight, explainable view of open records based on due-date status, severity, investigation progress, recurrence, and data-completeness checks.
+> **Data boundary:** Every record, name, and scenario is fictional. This repository contains no proprietary information, employer data, processes, or code. It is not validated software and must not be used for regulated quality decisions.
 
 ## What it demonstrates
 
-- Python and FastAPI REST API design
-- SQL schema design and data-quality validation
-- Transparent, explainable rule-based risk scoring
-- Synthetic data handling and field-level data dictionary
-- Human-in-the-loop review status
-- Portfolio-safe documentation for regulated contexts
+- SQLite staging and structured SQL constraints
+- FastAPI endpoints with Pydantic response models
+- Explainable, version-controlled risk scoring
+- React reviewer dashboard with risk filters, search, and rationale panel
+- Automated tests and GitHub Actions CI
+- Human-review and non-production boundaries documented explicitly
 
 ## Architecture
 
 ```text
-Synthetic CSV → SQLite staging table → validation + risk rules → FastAPI endpoints → reviewer-ready JSON output
+Synthetic CSV → SQLite staging → validation + risk rules → FastAPI → React reviewer dashboard
 ```
 
+See [architecture and data lineage](docs/architecture.md) and [risk rules and controls](docs/risk-rules.md).
+
 ## Run locally
+
+### API
 
 ```bash
 python -m venv .venv
@@ -32,40 +34,46 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/docs` to test the API.
+Open `http://127.0.0.1:8000/docs` for interactive API documentation. On first start, the local SQLite database is seeded from the synthetic CSV.
+
+### Dashboard
+
+In a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL, normally `http://127.0.0.1:5173`. The development proxy forwards `/api` requests to FastAPI.
 
 ## API endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Confirms the API is running |
-| `GET /deviations` | Returns all synthetic deviations with risk signals |
-| `GET /deviations?risk_level=High` | Filters deviations by risk level |
-| `GET /summary` | Returns counts by risk level and review status |
+| `GET /health` | Confirms service state and synthetic-data boundary |
+| `GET /deviations` | Returns scored synthetic deviations |
+| `GET /deviations?risk_level=High` | Filters the queue by calculated risk |
+| `GET /deviations?review_status=Pending%20Review` | Filters the queue by workflow state |
+| `GET /deviations/{deviation_id}` | Returns one explainable risk record |
+| `GET /summary` | Returns queue counts, overdue items, and unassigned records |
 
-## Risk rules
+## Risk model
 
-The score is deliberately explainable rather than predictive. A record receives points when it is high severity, overdue, lacks an investigation owner, is a repeat occurrence, or has incomplete required data. The API returns the reasons alongside each score so a qualified reviewer can assess—not blindly accept—the prioritization.
+The score is deliberately **explainable**, not predictive. The service assigns points for severity, past-due status, missing ownership, recurrence, and incomplete records. A High score is 5 or more, Medium is 2–4, and Low is 0–1. Each response returns the contributing reasons so that a reviewer can evaluate—not blindly accept—the prioritization.
 
-## Data dictionary
+## Repository structure
 
-| Field | Description |
-| --- | --- |
-| `deviation_id` | Synthetic unique record identifier |
-| `severity` | Low, Medium, or High impact classification |
-| `due_date` | Target date for investigation closure |
-| `investigation_owner` | Assigned reviewer or owner |
-| `repeat_occurrence` | Whether a similar event has recurred |
-| `record_complete` | Whether required portfolio fields are populated |
-| `review_status` | Human review workflow state |
+```text
+app/        FastAPI, SQLite loading, schemas, and scoring rules
+data/       Synthetic CSV source; generated SQLite database is ignored
+frontend/   Vite + React reviewer dashboard
+sql/        Schema constraints and query indexes
+tests/      Automated behavior tests
+docs/       Architecture, risk rules, controls, and limitations
+```
 
-## Roadmap
+## Quality and scope
 
-- [ ] Add automated tests for validation and scoring rules
-- [ ] Add a simple React review interface
-- [ ] Add data lineage diagram and decision log
-- [ ] Containerize with Docker
-
-## Tech stack
-
-Python · FastAPI · SQLite · SQL · CSV · Pydantic
+`pytest -q` runs automated tests locally, and GitHub Actions runs them on every push and pull request. The project is intentionally scoped as a learning artifact; production use would require formal validation, requirements traceability, access control, audit trails, change control, security assessment, and governed quality procedures.

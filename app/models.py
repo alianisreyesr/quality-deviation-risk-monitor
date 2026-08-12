@@ -1,37 +1,34 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from datetime import date
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+RiskLevel = Literal["Low", "Medium", "High"]
 
 
-class DeviationRecord(BaseModel):
+class DeviationResponse(BaseModel):
     deviation_id: str
     title: str
-    severity: str
-    opened_date: str
-    due_date: str
-    investigation_owner: Optional[str] = None
+    severity: RiskLevel
+    opened_date: date
+    due_date: date
+    investigation_owner: str | None
     repeat_occurrence: bool
     record_complete: bool
     review_status: str
+    risk_score: int = Field(ge=0)
+    risk_level: RiskLevel
+    risk_reasons: list[str]
 
 
-class DeviationResponse(DeviationRecord):
-    risk_score: int
-    risk_level: str
-    risk_reasons: List[str]
-
-
-class DeviationsListResponse(BaseModel):
+class DeviationListResponse(BaseModel):
     count: int
-    records: List[DeviationResponse]
-
-
-class RiskCounts(BaseModel):
-    Low: int
-    Medium: int
-    High: int
+    records: list[DeviationResponse]
 
 
 class SummaryResponse(BaseModel):
     total_records: int
-    risk_counts: RiskCounts
-    review_status_counts: dict
+    risk_counts: dict[RiskLevel, int]
+    review_status_counts: dict[str, int]
+    overdue_records: int
+    unassigned_records: int
