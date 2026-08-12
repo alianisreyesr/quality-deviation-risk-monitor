@@ -26,6 +26,13 @@ def initialize_database(database_file: Path = DATABASE_FILE) -> None:
         )
 
 
+def reset_database(database_file: Path = DATABASE_FILE) -> None:
+    """Recreate the local SQLite database from the version-controlled synthetic CSV."""
+    if database_file.exists():
+        database_file.unlink()
+    initialize_database(database_file)
+
+
 def fetch_deviations(database_file: Path = DATABASE_FILE) -> list[dict[str, object]]:
     with connection(database_file) as conn:
         return [dict(row) for row in conn.execute("SELECT * FROM deviations ORDER BY due_date, deviation_id")]
