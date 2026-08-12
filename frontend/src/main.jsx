@@ -1,193 +1,111 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+const RISK_LEVELS = ['All', 'High', 'Medium', 'Low'];
 
-// --- Risk badge component ---
 function RiskBadge({ level }) {
+  return <span className={`risk-badge risk-${level.toLowerCase()}`}>{level}</span>;
+}
+
+function StatCard({ label, value, tone, onClick, selected }) {
   return (
-    <span className={`risk-badge risk-badge--${level.toLowerCase()}`}>
-      {level}
-    </span>
+    <button className={`stat-card ${tone} ${selected ? 'selected' : ''}`} onClick={onClick}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </button>
   );
 }
 
-// --- Summary cards at the top ---
-function SummaryCards({ records, activeFilter, onFilterChange }) {
-  const levels = ['High', 'Medium', 'Low'];
-  return (
-    <section className="summary-cards">
-      {levels.map((level) => (
-        <button
-          key={level}
-          className={`card card--${level.toLowerCase()} ${
-            activeFilter === level ? 'card--active' : ''
-          }`}
-          onClick={() => onFilterChange(activeFilter === level ? 'All' : level)}
-        >
-          <span className="card__label">{level} Risk</span>
-          <span className="card__count">
-            {records.filter((r) => r.risk_level === level).length}
-          </span>
-        </button>
-      ))}
-      <button
-        className={`card card--all ${activeFilter === 'All' ? 'card--active' : ''}`}
-        onClick={() => onFilterChange('All')}
-      >
-        <span className="card__label">All</span>
-        <span className="card__count">{records.length}</span>
-      </button>
-    </section>
-  );
-}
-
-// --- Detail side panel for a single deviation ---
-function DetailPanel({ deviation, onClose }) {
-  if (!deviation) return null;
-  return (
-    <aside className="detail-panel">
-      <button className="detail-panel__close" onClick={onClose}>
-        &times; Close
-      </button>
-      <h2>{deviation.deviation_id}</h2>
-      <p className="detail-panel__title">{deviation.title}</p>
-
-      <dl className="detail-panel__meta">
-        <dt>Severity</dt>
-        <dd>{deviation.severity}</dd>
-        <dt>Due Date</dt>
-        <dd>{deviation.due_date}</dd>
-        <dt>Owner</dt>
-        <dd>{deviation.investigation_owner || 'Unassigned'}</dd>
-        <dt>Review Status</dt>
-        <dd>{deviation.review_status}</dd>
-        <dt>Risk Score</dt>
-        <dd>{deviation.risk_score}</dd>
-      </dl>
-
-      <h3>Why it was flagged</h3>
-      <ul className="reason-list">
-        {deviation.risk_reasons.map((reason) => (
-          <li key={reason}>{reason}</li>
-        ))}
-      </ul>
-
-      <p className="detail-panel__notice">
-        Human review remains required. This score is advisory only.
-      </p>
-    </aside>
-  );
-}
-
-// --- Deviations table ---
-function DeviationTable({ records, onSelectDeviation }) {
-  if (records.length === 0) {
-    return <p className="empty-state">No records match the selected filter.</p>;
+function DeviationTable({ records, onSelect }) {
+  if (!records.length) {
+    return <div className="empty-state">No deviations match the selected filters.</div>;
   }
+
   return (
-    <table className="deviation-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Title</th>
-          <th>Severity</th>
-          <th>Due Date</th>
-          <th>Owner</th>
-          <th>Risk</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {records.map((record) => (
-          <tr key={record.deviation_id}>
-            <td>{record.deviation_id}</td>
-            <td>{record.title}</td>
-            <td>{record.severity}</td>
-            <td>{record.due_date}</td>
-            <td>{record.investigation_owner || <em>Unassigned</em>}</td>
-            <td>
-              <RiskBadge level={record.risk_level} />
-              <span className="risk-score"> {record.risk_score}</span>
-            </td>
-            <td>{record.review_status}</td>
-            <td>
-              <button
-                className="btn-review"
-                onClick={() => onSelectDeviation(record)}
-              >
-                Review
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="table-wrap">
+      <table>
+        <thead><tr><th>Deviation</th><th>Severity</th><th>Due date</th><th>Owner</th><th>Risk signal</th><th /></tr></thead>
+        <tbody>
+          {records.map((record) => (
+            <tr key={record.deviation_id}>
+              <td><strong>{record.deviation_id}</strong><span>{record.title}</span></td>
+              <td>{record.severity}</td>
+              <td>{record.due_date}</td>
+              <td>{record.investigation_owner || 'Unassigned'}</td>
+              <td><RiskBadge level={record.risk_level} /><span className="score">{record.risk_score} points</span></td>
+              <td><button className="review-button" onClick={() => onSelect(record)}>Review</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-// --- Root app ---
+function ReviewPanel({ record, onClose }) {
+  if (!record) return null;
+  return (
+    <div className="panel-backdrop" onClick={onClose}>
+      <aside className="review-panel" onClick={(event) => event.stopPropagation()}>
+        <button className="close-button" onClick={onClose} aria-label="Close review panel">×</button>
+        <p className="eyebrow">EXPLAINABLE RISK REVIEW</p>
+        <h2>{record.deviation_id}</h2>
+        <p className="panel-title">{record.title}</p>
+        <div className="panel-meta"><RiskBadge level={record.risk_level} /><span>{record.risk_score} total points</span></div>
+        <h3>Why this record was flagged</h3>
+        <ul>{record.risk_reasons.length ? record.risk_reasons.map((reason) => <li key={reason}>{reason}</li>) : <li>No active risk signals.</li>}</ul>
+        <div className="review-note"><strong>Reviewer accountability</strong><br />This prioritization is advisory. A qualified reviewer must assess the record before making a quality decision.</div>
+      </aside>
+    </div>
+  );
+}
+
 function App() {
-  const [allRecords, setAllRecords] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [selectedDeviation, setSelectedDeviation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [records, setRecords] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [riskFilter, setRiskFilter] = useState('All');
+  const [search, setSearch] = useState('');
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE}/deviations`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        return res.json();
+    Promise.all([fetch(`${API_BASE_URL}/deviations`), fetch(`${API_BASE_URL}/summary`)])
+      .then(async ([deviationsResponse, summaryResponse]) => {
+        if (!deviationsResponse.ok || !summaryResponse.ok) throw new Error('API unavailable');
+        const deviations = await deviationsResponse.json();
+        setRecords(deviations.records);
+        setSummary(await summaryResponse.json());
       })
-      .then((data) => {
-        setAllRecords(data.records);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+      .catch(() => setError('Unable to load synthetic data. Start the FastAPI service on port 8000.'));
   }, []);
 
-  const filteredRecords =
-    activeFilter === 'All'
-      ? allRecords
-      : allRecords.filter((r) => r.risk_level === activeFilter);
+  const filteredRecords = useMemo(() => records.filter((record) => {
+    const matchesRisk = riskFilter === 'All' || record.risk_level === riskFilter;
+    const query = search.trim().toLowerCase();
+    const matchesSearch = !query || `${record.deviation_id} ${record.title} ${record.investigation_owner || ''}`.toLowerCase().includes(query);
+    return matchesRisk && matchesSearch;
+  }), [records, riskFilter, search]);
 
   return (
-    <main>
-      <header className="app-header">
-        <p className="eyebrow">QUALITY DEVIATION RISK MONITOR</p>
-        <h1>Reviewer Dashboard</h1>
-        <p className="notice">
-          Synthetic portfolio data — not for production or regulated
-          decision-making.
-        </p>
+    <main className="app-shell">
+      <header>
+        <div><p className="eyebrow">QUALITY SYSTEMS · PORTFOLIO PROTOTYPE</p><h1>Deviation Risk Monitor</h1><p className="subtitle">Transparent prioritization for synthetic quality-deviation records.</p></div>
+        <div className="synthetic-notice">Synthetic data only<br />Human review required</div>
       </header>
-
-      {loading && <p className="loading">Loading records…</p>}
-      {error && <p className="error">Could not load data: {error}</p>}
-
-      {!loading && !error && (
-        <>
-          <SummaryCards
-            records={allRecords}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-          />
-          <DeviationTable
-            records={filteredRecords}
-            onSelectDeviation={setSelectedDeviation}
-          />
-          <DetailPanel
-            deviation={selectedDeviation}
-            onClose={() => setSelectedDeviation(null)}
-          />
-        </>
-      )}
+      {error ? <div className="error">{error}</div> : <>
+        <section className="metrics">
+          {RISK_LEVELS.slice(1).map((level) => <StatCard key={level} label={`${level} risk`} value={summary?.risk_counts?.[level] ?? '—'} tone={level.toLowerCase()} selected={riskFilter === level} onClick={() => setRiskFilter(level)} />)}
+          <StatCard label="Past due" value={summary?.overdue_records ?? '—'} tone="neutral" selected={riskFilter === 'All'} onClick={() => setRiskFilter('All')} />
+        </section>
+        <section className="workspace">
+          <div className="toolbar"><div><h2>Reviewer queue</h2><p>{filteredRecords.length} records shown</p></div><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ID, title, or owner" aria-label="Search deviations" /></div>
+          <DeviationTable records={filteredRecords} onSelect={setSelectedRecord} />
+        </section>
+      </>}
+      <footer>Risk scores are explainable rule-based signals, not predictive models or regulated quality decisions.</footer>
+      <ReviewPanel record={selectedRecord} onClose={() => setSelectedRecord(null)} />
     </main>
   );
 }

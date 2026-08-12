@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import fetch_deviations, initialize_database
 from app.models import DeviationListResponse, DeviationResponse, SummaryResponse
@@ -15,6 +16,12 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Quality Deviation Risk Monitor", description="Portfolio-safe API using synthetic data and transparent risk rules.", version="1.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 
 def scored_records() -> list[dict[str, object]]:
