@@ -1,74 +1,76 @@
-from datetime import date
-from pathlib import Path
-import csv
+from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.db import fetch_all_deviations, init_db
+from app.models import DeviationsListResponse, SummaryResponse, RiskCounts
+from app.scoring import score_deviation
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize the SQLite database (schema + seed) on startup."""
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="Quality Deviation Risk Monitor",
-    description="Portfolio-safe API using synthetic data and transparent risk rules.",
-    version="0.1.0",
+    description=(
+        "Portfolio-safe API using synthetic data and transparent, "
+        "explainable risk rules. Not for production or regulated use."
+    ),
+    version="0.2.0",
+    lifespan=lifespan,
 )
 
-DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "deviations.csv"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 
-def load_deviations():
-    with DATA_FILE.open(newline="", encoding="utf-8") as file:
-        rows = list(csv.DictReader(file))
-    return [score_deviation(row) for row in rows]
-
-
-def score_deviation(record):
-    score = 0
-    reasons = []
-
-    if record["severity"] == "High":
-        score += 3
-        reasons.append("High severity")
-    elif record["severity"] == "Medium":
-        score += 1
-        reasons.append("Medium severity")
-
-    if date.fromisoformat(record["due_date"]) < date.today():
-        score += 3
-        reasons.append("Past due date")
-
-    if not record["investigation_owner"].strip():
-        score += 2
-        reasons.append("No investigation owner assigned")
-
-    if record["repeat_occurrence"].lower() == "true":
-        score += 2
-        reasons.append("Repeat occurrence")
-
-    if record["record_complete"].lower() != "true":
-        score += 2
-        reasons.append("Required data is incomplete")
-
-    risk_level = "High" if score >= 5 else "Medium" if score >= 2 else "Low"
-    return {**record, "risk_score": score, "risk_level": risk_level, "risk_reasons": reasons}
+def _load_scored() -> list[dict]:
+    raw = fetch_all_deviations()
+    return [score_deviation(record) for record in raw]
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "data_classification": "synthetic portfolio data"}
+    return {"status": "ok", "data_classification": "synthetic portfolio data", "version": "0.2.0"}
 
 
-@app.get("/deviations")
-def deviations(risk_level: str | None = Query(default=None, pattern="^(Low|Medium|High)$")):
-    records = load_deviations()
+@app.get("/deviations", response_model=DeviationsListResponse)
+def deviations(
+    risk_level: Optional[str] = Query(
+        default=None,
+        pattern="^(Low|Medium|High)$",
+        description="Filter records by computed risk level.",
+    )
+):
+    records = _load_scored()
     if risk_level:
-        records = [record for record in records if record["risk_level"] == risk_level]
+        records = [r for r in records if r["risk_level"] == risk_level]
     return {"count": len(records), "records": records}
 
 
-@app.get("/summary")
+@app.get("/summary", response_model=SummaryResponse)
 def summary():
-    records = load_deviations()
-    risk_counts = {level: sum(record["risk_level"] == level for record in records) for level in ["Low", "Medium", "High"]}
-    review_counts = {}
+    records = _load_scored()
+    risk_counts = {
+        level: sum(1 for r in records if r["risk_level"] == level)
+        for level in ("Low", "Medium", "High")
+    }
+    review_counts: dict[str, int] = {}
     for record in records:
         status = record["review_status"]
         review_counts[status] = review_counts.get(status, 0) + 1
-    return {"total_records": len(records), "risk_counts": risk_counts, "review_status_counts": review_counts}
+    return {
+        "total_records": len(records),
+        "risk_counts": RiskCounts(**risk_counts),
+        "review_status_counts": review_counts,
+    }
