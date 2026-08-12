@@ -83,6 +83,13 @@ def initialize_database(database_file: Path = DATABASE_FILE) -> None:
         raise
 
 
+def reset_database(database_file: Path = DATABASE_FILE) -> None:
+    """Recreate the local SQLite database from the version-controlled synthetic CSV."""
+    if database_file.exists():
+        database_file.unlink()
+    initialize_database(database_file)
+
+
 def fetch_deviations(database_file: Path = DATABASE_FILE) -> list[dict[str, object]]:
     """Fetch all deviation records from database.
     
