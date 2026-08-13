@@ -13,8 +13,6 @@ and uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Planned
-- Audit trail middleware logging `who + when + what endpoint` (21 CFR Part 11 alignment)
-- SQL indexes on `severity`, `risk_level`, `due_date`, `review_status`
 - Async database driver (`aiosqlite`) for concurrent request handling
 - CORS whitelist configuration for deployment hardening
 
@@ -33,8 +31,24 @@ patterns with synthetic deviation records.
 - `GET /deviations/{deviation_id}` — single explainable risk record with `risk_score`, `risk_level`, and `risk_reasons`
 - `GET /summary` — queue counts, overdue items, and unassigned records
 - `POST /cache/invalidate` — forces cache refresh; rate-limited to 10 requests/minute
+- `POST /deviations/{deviation_id}/review` — records a review action (`acknowledge` / `investigate` / `close`) with actor and optional comment; appends an immutable audit event
+- `GET /audit-log` — returns the full immutable audit log, newest-first; filterable by `deviation_id`
 - Pydantic response models for all endpoints (`app/models.py`, `app/audit_models.py`)
 - Explainable, version-controlled risk scoring (`app/scoring.py`): points for severity, past-due status, missing ownership, recurrence, and incomplete records; High ≥ 5, Medium 2–4, Low 0–1
+
+#### Audit Trail (21 CFR Part 11 / ALCOA+)
+- Immutable, append-only `audit_log` table — no UPDATE or DELETE ever issued; tamper-evident by design
+- `app/audit_db.py` — database helpers for append-only audit event insertion
+- `app/audit_models.py` — Pydantic models for audit events and log responses
+- `app/audit_router.py` — `/review` and `/audit-log` endpoint handlers
+- `AuditMiddleware` (`app/audit_middleware.py`) — logs every mutating HTTP request (method, path, actor, body snapshot, IP, User-Agent, status code, latency) to `audit_log`; actor resolved from request body `actor` field or `X-Actor` header; excluded paths: `/cache/invalidate`, `/docs`, `/openapi.json`, `/redoc`; audit failure never breaks the response
+- Audit fields: `actor`, `action`, `previous_status`, `new_status`, `comment` (max 1 000 chars), `ip_address`, `user_agent`, `status_code`, `latency_ms`, `created_at` (UTC)
+
+#### Database
+- SQL indexes on `severity`, `risk_level`, `due_date`, and `review_status` columns for query performance on filtered `/deviations` calls (`sql/`)
+- SQLite staging database seeded from synthetic CSV on first start (`data/`)
+- Schema constraints and query structure documented in `sql/`
+- 30 synthetic deviation records — all fictional; no proprietary or employer data
 
 #### Security
 - Per-IP rate limiting via `slowapi`: 100 requests/minute on general endpoints, 10/minute on cache invalidation
@@ -52,18 +66,13 @@ patterns with synthetic deviation records.
 - Log format: `timestamp | module | level | [file:line] | message`
 - Config module (`app/config.py`) for environment-level settings
 
-#### Data Layer
-- SQLite staging database seeded from synthetic CSV on first start (`data/`)
-- Schema constraints and query structure documented in `sql/`
-- 30 synthetic deviation records — all fictional; no proprietary or employer data
-
 #### Frontend
 - Vite + React reviewer dashboard (`frontend/`)
 - Risk-level filter, search, and rationale panel
 - Development proxy forwards `/api` requests to FastAPI
 
 #### Testing & CI
-- 23 automated tests across API endpoints (9), scoring logic (10), and integration (4) in `tests/`
+- 57 automated tests across 8 modules (`tests/`): `test_api.py`, `test_audit.py`, `test_cache.py`, `test_database.py`, `test_main.py`, `test_middleware.py`, `test_models.py`, `test_scoring.py`
 - `pytest --cov=app --cov-report=term-missing` coverage reporting
 - GitHub Actions CI (`ci.yml`) — runs on every push and pull request
 - GitHub Actions test workflow (`tests.yml`)
