@@ -8,6 +8,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+from app.config import CORS_ORIGINS
 from app.database import fetch_deviations, initialize_database
 from app.audit_db import initialize_audit_table
 from app.audit_middleware import AuditMiddleware
@@ -48,7 +49,7 @@ app.state.limiter = limiter
 # --- Middleware (order matters: CORS first, then Audit) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,   # configured via CORS_ORIGINS env var
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
@@ -122,25 +123,17 @@ def deviations(
     risk_level: str | None = Query(default=None, pattern="^(Low|Medium|High)$"),
     review_status: str | None = None,
 ) -> dict[str, object]:
-    """Get all deviations with optional filtering.
-
-    Args:
-        risk_level: Optional filter for Low, Medium, or High risk
-        review_status: Optional filter for review status
-
-    Returns:
-        List of deviations with risk scores
-
-    Raises:
-        HTTPException: If data loading fails
-    """
+    """Get all deviations with optional filtering."""
     try:
         records = scored_records()
 
         if risk_level:
             original_count = len(records)
             records = [r for r in records if r["risk_level"] == risk_level]
-            logger.info(f"Filtered {len(records)} records at {risk_level} risk level (from {original_count} total)")
+            logger.info(
+                f"Filtered {len(records)} records at {risk_level} risk level "
+                f"(from {original_count} total)"
+            )
 
         if review_status:
             records = [r for r in records if r["review_status"] == review_status]
@@ -157,17 +150,7 @@ def deviations(
 @app.get("/deviations/{deviation_id}", response_model=DeviationResponse)
 @limiter.limit("100/minute")
 def deviation_detail(request: Request, deviation_id: str) -> dict[str, object]:
-    """Get details for a specific deviation.
-
-    Args:
-        deviation_id: The deviation ID to retrieve
-
-    Returns:
-        Deviation record with risk score
-
-    Raises:
-        HTTPException: If deviation not found or data loading fails
-    """
+    """Get details for a specific deviation."""
     try:
         for record in scored_records():
             if record["deviation_id"] == deviation_id:
@@ -185,14 +168,7 @@ def deviation_detail(request: Request, deviation_id: str) -> dict[str, object]:
 @app.get("/summary", response_model=SummaryResponse)
 @limiter.limit("100/minute")
 def summary(request: Request) -> dict[str, object]:
-    """Get summary statistics of deviations.
-
-    Returns:
-        Summary with counts by risk level and review status
-
-    Raises:
-        HTTPException: If data loading fails
-    """
+    """Get summary statistics of deviations."""
     try:
         records = scored_records()
 
@@ -206,7 +182,9 @@ def summary(request: Request) -> dict[str, object]:
             for status in sorted({str(r["review_status"]) for r in records})
         }
 
-        overdue = sum(date.fromisoformat(str(r["due_date"])) < date.today() for r in records)
+        overdue = sum(
+            date.fromisoformat(str(r["due_date"])) < date.today() for r in records
+        )
         unassigned = sum(not r["investigation_owner"] for r in records)
 
         logger.info(
@@ -232,10 +210,7 @@ def summary(request: Request) -> dict[str, object]:
 @app.post("/cache/invalidate")
 @limiter.limit("10/minute")
 def cache_invalidate(request: Request) -> dict[str, str]:
-    """Manually invalidate the scored deviations cache.
-
-    Useful for refreshing data without restarting the server.
-    """
+    """Manually invalidate the scored deviations cache."""
     try:
         invalidate_cache()
         logger.info("Cache invalidated via API endpoint")
