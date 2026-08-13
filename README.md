@@ -14,7 +14,7 @@ A portfolio-safe, full-stack prototype that prioritizes **synthetic quality-devi
 - **Immutable audit trail** — append-only `audit_log` table, actor + timestamp on every mutation, 21 CFR Part 11 / ALCOA+ aligned
 - `AuditMiddleware` — logs every mutating HTTP request (method, path, status, latency) to the same `audit_log` table for full API-level traceability
 - React reviewer dashboard with risk filters, search, and rationale panel
-- Automated tests (45 tests across 7 modules) and GitHub Actions CI
+- Automated tests (57 tests across 8 modules) and GitHub Actions CI
 - Human-review and non-production boundaries documented explicitly
 
 ## Architecture
@@ -93,16 +93,18 @@ app/        FastAPI, SQLite loading, schemas, scoring rules, and audit trail
               audit_models.py     — Pydantic models for audit events
               audit_router.py     — POST /review and GET /audit-log endpoints
               cache.py            — in-memory TTL cache for scored deviations
+              models.py           — Pydantic models for deviations and reviews
 data/       Synthetic CSV source; generated SQLite database is ignored
 frontend/   Vite + React reviewer dashboard
 sql/        Schema constraints and query indexes
-tests/      Automated behavior tests (45 tests across 7 modules)
+tests/      Automated behavior tests (57 tests across 8 modules)
               test_api.py         — endpoint integration tests
               test_audit.py       — audit trail integration tests
               test_cache.py       — cache unit & endpoint tests
               test_database.py    — database loading tests
               test_main.py        — scoring determinism + API smoke tests
               test_middleware.py  — AuditMiddleware + path-parsing tests
+              test_models.py      — Pydantic model field and validation tests
               test_scoring.py     — risk-scoring unit tests
 docs/       Architecture, risk rules, controls, and limitations
 ```
