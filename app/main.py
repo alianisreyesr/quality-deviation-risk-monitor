@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import date
 from pathlib import Path
 import csv
@@ -56,7 +57,7 @@ def health():
 
 
 @app.get("/deviations")
-def deviations(risk_level: str | None = Query(default=None, pattern="^(Low|Medium|High)$")):
+def deviations(risk_level: Optional[str] = Query(default=None, pattern="^(Low|Medium|High)$")):
     records = load_deviations()
     if risk_level:
         records = [record for record in records if record["risk_level"] == risk_level]
