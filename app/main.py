@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -110,93 +109,20 @@ def health(request: Request) -> dict[str, str]:
         }
 
 
-@app.get("/deviations", response_model=DeviationListResponse)
-@limiter.limit("100/minute")
-def deviations(
-    request: Request,
-    risk_level: str | None = Query(default=None, pattern="^(Low|Medium|High)$"),
-    review_status: str | None = None,
-) -> dict[str, object]:
-    try:
-        records = scored_records()
-        if risk_level:
-            original_count = len(records)
-            records = [r for r in records if r["risk_level"] == risk_level]
-            logger.info(
-                f"Filtered {len(records)} records at {risk_level} risk level "
-                f"(from {original_count} total)"
-            )
-        if review_status:
-            records = [r for r in records if r["review_status"] == review_status]
-        logger.info(f"Retrieved {len(records)} deviations")
-        return {"count": len(records), "records": records}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retrieving deviations: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve deviations")
+@app.get("/deviations")
+def deviations(risk_level: str | None = Query(default=None, pattern="^(Low|Medium|High)$")):
+    records = load_deviations()
+    if risk_level:
+        records = [record for record in records if record["risk_level"] == risk_level]
+    return {"count": len(records), "records": records}
 
 
-@app.get("/deviations/{deviation_id}", response_model=DeviationResponse)
-@limiter.limit("100/minute")
-def deviation_detail(request: Request, deviation_id: str) -> dict[str, object]:
-    try:
-        for record in scored_records():
-            if record["deviation_id"] == deviation_id:
-                logger.info(f"Retrieved deviation {deviation_id}")
-                return record
-        logger.warning(f"Deviation {deviation_id} not found")
-        raise HTTPException(status_code=404, detail="Deviation not found")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retrieving deviation {deviation_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve deviation")
-
-
-@app.get("/summary", response_model=SummaryResponse)
-@limiter.limit("100/minute")
-def summary(request: Request) -> dict[str, object]:
-    try:
-        records = scored_records()
-        risk_counts = {
-            level: sum(r["risk_level"] == level for r in records)
-            for level in ["Low", "Medium", "High"]
-        }
-        review_status_counts = {
-            status: sum(r["review_status"] == status for r in records)
-            for status in sorted({str(r["review_status"]) for r in records})
-        }
-        overdue = sum(
-            date.fromisoformat(str(r["due_date"])) < date.today() for r in records
-        )
-        unassigned = sum(not r["investigation_owner"] for r in records)
-        logger.info(
-            f"Summary: {len(records)} total, Risk={risk_counts}, "
-            f"Review statuses={list(review_status_counts.keys())}, "
-            f"Overdue={overdue}, Unassigned={unassigned}"
-        )
-        return {
-            "total_records": len(records),
-            "risk_counts": risk_counts,
-            "review_status_counts": review_status_counts,
-            "overdue_records": overdue,
-            "unassigned_records": unassigned,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error generating summary: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate summary")
-
-
-@app.post("/cache/invalidate")
-@limiter.limit("10/minute")
-def cache_invalidate(request: Request) -> dict[str, str]:
-    try:
-        invalidate_cache()
-        logger.info("Cache invalidated via API endpoint")
-        return {"status": "cache invalidated"}
-    except Exception as e:
-        logger.error(f"Failed to invalidate cache: {e}")
-        raise HTTPException(status_code=500, detail="Failed to invalidate cache")
+@app.get("/summary")
+def summary():
+    records = load_deviations()
+    risk_counts = {level: sum(record["risk_level"] == level for record in records) for level in ["Low", "Medium", "High"]}
+    review_counts = {}
+    for record in records:
+        status = record["review_status"]
+        review_counts[status] = review_counts.get(status, 0) + 1
+    return {"total_records": len(records), "risk_counts": risk_counts, "review_status_counts": review_counts}
