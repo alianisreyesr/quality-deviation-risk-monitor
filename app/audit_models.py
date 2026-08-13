@@ -21,3 +21,20 @@ class AuditEventResponse(BaseModel):
     previous_status: str
     new_status: str
     created_at: datetime
+
+
+class TransitionRejectedResponse(BaseModel):
+    """Returned as HTTP 409 when a state transition is not permitted."""
+    detail: str
+    deviation_id: str
+    current_status: str
+    requested_action: str
+    allowed_actions: list[str]
+
+
+class AuditTrailResponse(BaseModel):
+    """Audit history for a single deviation."""
+    deviation_id: str
+    current_review_status: str
+    event_count: int
+    events: list[dict]

@@ -5,21 +5,35 @@ POST /deviations/{deviation_id}/review
     Updates deviation.review_status and writes an immutable audit_log entry.
     Complies with 21 CFR Part 11: actor required, timestamp server-generated,
     previous + new status both recorded.
+    Returns HTTP 409 if the requested transition is not permitted from the
+    deviation's current status.
+
+GET /deviations/{deviation_id}/audit-trail
+    Return the full audit history for a single deviation, newest-first.
+    Includes current review_status and event count.
 
 GET /audit-log
     Return the full immutable audit log, newest first.
     Optional ?deviation_id= query param to filter by deviation.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.audit_models import AuditEventResponse, ReviewActionRequest
+from app.audit_models import (
+    AuditEventResponse,
+    AuditTrailResponse,
+    ReviewActionRequest,
+    TransitionRejectedResponse,
+)
 from app.audit_db import (
     fetch_audit_log,
     insert_audit_event,
     update_deviation_status,
+    fetch_deviation_current_status,
 )
 from app.cache import invalidate_cache
 from app.logger import setup_logger
@@ -36,15 +50,39 @@ ACTION_TO_STATUS: dict[str, str] = {
     "close": "Closed",
 }
 
+# Allowed transitions: current_status → set of actions permitted from that state.
+# Deviations that are Closed cannot be acted upon — they must be re-opened via
+# a separate controlled process (out of scope for this prototype).
+# A deviation already Under Review cannot be re-acknowledged (no-op prevention).
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "Open":                      {"acknowledge", "investigate"},
+    "Under Review":              {"investigate", "close"},
+    "Investigation In Progress": {"close"},
+    "Closed":                    set(),  # terminal state — no further actions
+}
+
+
+def _allowed_actions_for(status: str) -> list[str]:
+    """Return the sorted list of actions permitted from a given status."""
+    return sorted(ALLOWED_TRANSITIONS.get(status, set()))
+
 
 @router.post(
     "/deviations/{deviation_id}/review",
     response_model=AuditEventResponse,
+    responses={
+        404: {"description": "Deviation not found"},
+        409: {
+            "description": "Transition not permitted from the deviation's current status",
+            "model": TransitionRejectedResponse,
+        },
+    },
     summary="Record a review action on a deviation",
     description=(
         "Appends an immutable audit event and updates the deviation's "
-        "review_status. Actor and action are required. Complies with "
-        "21 CFR Part 11 / ALCOA+ traceability requirements."
+        "review_status. Actor and action are required. Returns HTTP 409 if the "
+        "requested action is not permitted from the current status. "
+        "Complies with 21 CFR Part 11 / ALCOA+ traceability requirements."
     ),
 )
 @limiter.limit("30/minute")
@@ -64,14 +102,42 @@ async def review_deviation(
 
     Raises:
         HTTPException 404: Deviation not found.
+        HTTPException 409: Transition not permitted from current status.
         HTTPException 500: Database error.
     """
     try:
+        # --- Resolve current status ---
+        current_status = fetch_deviation_current_status(deviation_id)
+        if current_status is None:
+            logger.warning(f"Review attempted on non-existent deviation {deviation_id}")
+            raise HTTPException(status_code=404, detail="Deviation not found")
+
+        # --- Validate state transition ---
+        permitted = ALLOWED_TRANSITIONS.get(current_status, set())
+        if body.action not in permitted:
+            allowed = _allowed_actions_for(current_status)
+            logger.warning(
+                f"Blocked transition: deviation={deviation_id} "
+                f"status={current_status!r} action={body.action!r} "
+                f"allowed={allowed}"
+            )
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "detail": f"Action '{body.action}' is not permitted when status is '{current_status}'.",
+                    "deviation_id": deviation_id,
+                    "current_status": current_status,
+                    "requested_action": body.action,
+                    "allowed_actions": allowed,
+                },
+            )
+
+        # --- Perform status update ---
         new_status = ACTION_TO_STATUS[body.action]
         previous_status = update_deviation_status(deviation_id, new_status)
 
         if previous_status is None:
-            logger.warning(f"Review attempted on non-existent deviation {deviation_id}")
+            # Extremely unlikely race condition guard
             raise HTTPException(status_code=404, detail="Deviation not found")
 
         ip_address = request.client.host if request.client else "unknown"
@@ -105,9 +171,7 @@ async def review_deviation(
             comment=body.comment,
             previous_status=previous_status,
             new_status=new_status,
-            created_at=__import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ),
+            created_at=datetime.now(timezone.utc),
         )
 
     except HTTPException:
@@ -115,6 +179,58 @@ async def review_deviation(
     except Exception as exc:
         logger.error(f"Failed to record review action for {deviation_id}: {exc}")
         raise HTTPException(status_code=500, detail="Failed to record review action")
+
+
+@router.get(
+    "/deviations/{deviation_id}/audit-trail",
+    response_model=AuditTrailResponse,
+    responses={404: {"description": "Deviation not found"}},
+    summary="Get the audit history for a single deviation",
+    description=(
+        "Returns all audit events for a specific deviation, newest-first, "
+        "along with the current review_status and total event count. "
+        "Useful for reviewers verifying the full traceability chain of a record."
+    ),
+)
+@limiter.limit("60/minute")
+async def deviation_audit_trail(
+    request: Request,
+    deviation_id: str,
+    limit: int = Query(default=100, ge=1, le=500),
+) -> AuditTrailResponse:
+    """Return the complete audit trail for one deviation.
+
+    Args:
+        deviation_id: Target deviation identifier.
+        limit: Maximum number of events to return.
+
+    Returns:
+        AuditTrailResponse with current status and event list.
+
+    Raises:
+        HTTPException 404: Deviation not found.
+        HTTPException 500: Database error.
+    """
+    try:
+        current_status = fetch_deviation_current_status(deviation_id)
+        if current_status is None:
+            raise HTTPException(status_code=404, detail="Deviation not found")
+
+        events = fetch_audit_log(deviation_id=deviation_id, limit=limit)
+        logger.info(
+            f"Audit trail fetched: {len(events)} events for deviation {deviation_id}"
+        )
+        return AuditTrailResponse(
+            deviation_id=deviation_id,
+            current_review_status=current_status,
+            event_count=len(events),
+            events=events,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Failed to fetch audit trail for {deviation_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve audit trail")
 
 
 @router.get(

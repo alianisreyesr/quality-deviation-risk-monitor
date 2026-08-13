@@ -125,6 +125,27 @@ def fetch_audit_log(
         raise
 
 
+def fetch_deviation_current_status(deviation_id: str) -> str | None:
+    """Fetch the current review_status of a deviation without modifying it.
+
+    Used by the transition validator before any write occurs.
+
+    Returns:
+        The current review_status string, or None if deviation not found.
+    """
+    try:
+        from app.database import connection  # local import
+        with connection(DATABASE_FILE) as conn:
+            row = conn.execute(
+                "SELECT review_status FROM deviations WHERE deviation_id = ?",
+                (deviation_id,),
+            ).fetchone()
+        return row["review_status"] if row else None
+    except sqlite3.DatabaseError as exc:
+        logger.error(f"Failed to fetch status for deviation {deviation_id}: {exc}")
+        raise
+
+
 def update_deviation_status(deviation_id: str, new_status: str) -> str | None:
     """Update review_status on a deviation row.
 
