@@ -4,3 +4,4 @@ pydantic==2.10.3
 pytest==8.3.4
 httpx==0.28.1
 slowapi==0.1.9
+aiosqlite==0.20.0
