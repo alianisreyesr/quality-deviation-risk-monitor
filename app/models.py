@@ -19,6 +19,9 @@ class DeviationResponse(BaseModel):
     risk_score: int = Field(ge=0)
     risk_level: RiskLevel
     risk_reasons: list[str]
+    scoring_rule_version: str = Field(
+        description="Version of the risk-scoring rule set used to produce this score."
+    )
 
 
 class DeviationListResponse(BaseModel):
@@ -32,3 +35,29 @@ class SummaryResponse(BaseModel):
     review_status_counts: dict[str, int]
     overdue_records: int
     unassigned_records: int
+
+
+# ---------------------------------------------------------------------------
+# Data Quality
+# ---------------------------------------------------------------------------
+
+class FieldQualityReport(BaseModel):
+    """Quality statistics for a single dataset field."""
+    field_name: str
+    total_records: int
+    null_count: int
+    invalid_count: int
+    null_rate: float = Field(description="Fraction of records with null/empty value (0–1)")
+    invalid_rate: float = Field(description="Fraction of records with an invalid value (0–1)")
+    sample_invalid_values: list[str] = Field(
+        default_factory=list,
+        description="Up to 5 example invalid values for diagnostic purposes.",
+    )
+
+
+class DataQualityResponse(BaseModel):
+    """Dataset-level data quality summary."""
+    total_records: int
+    records_with_any_issue: int
+    issue_rate: float = Field(description="Fraction of records with at least one data issue (0–1)")
+    fields: list[FieldQualityReport]
