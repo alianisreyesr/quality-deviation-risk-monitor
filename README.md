@@ -2,23 +2,26 @@
 
 [![CI](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/ci.yml)
 
-A portfolio-safe, full-stack prototype that prioritizes **synthetic quality-deviation records** with transparent, rule-based risk signals. It demonstrates data engineering, API design, explainable prioritization, and control-oriented documentation for regulated-quality contexts.
+A portfolio-safe, full-stack prototype that prioritizes **synthetic quality-deviation records** with transparent, rule-based risk signals. It demonstrates data engineering, API design, explainable prioritization, 21 CFR Part 11-aligned audit trails, and control-oriented documentation for regulated-quality contexts.
 
 > **Data boundary:** Every record, name, and scenario is fictional. This repository contains no proprietary information, employer data, processes, or code. It is not validated software and must not be used for regulated quality decisions.
 
 ## What it demonstrates
 
 - SQLite staging and structured SQL constraints
-- FastAPI endpoints with Pydantic response models
+- FastAPI endpoints with Pydantic response models and rate limiting
 - Explainable, version-controlled risk scoring
+- **Immutable audit trail** — append-only `audit_log` table, actor + timestamp on every mutation, 21 CFR Part 11 / ALCOA+ aligned
 - React reviewer dashboard with risk filters, search, and rationale panel
-- Automated tests and GitHub Actions CI
+- Automated tests (37 tests) and GitHub Actions CI
 - Human-review and non-production boundaries documented explicitly
 
 ## Architecture
 
 ```text
 Synthetic CSV → SQLite staging → validation + risk rules → FastAPI → React reviewer dashboard
+                                          ↓
+                                   audit_log table (append-only)
 ```
 
 See [architecture and data lineage](docs/architecture.md) and [risk rules and controls](docs/risk-rules.md).
@@ -34,7 +37,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/docs` for interactive API documentation. On first start, the local SQLite database is seeded from the synthetic CSV.
+Open `http://127.0.0.1:8000/docs` for interactive API documentation. On first start, the local SQLite database is seeded from the synthetic CSV and the `audit_log` table is created automatically.
 
 ### Dashboard
 
@@ -50,30 +53,49 @@ Open the Vite URL, normally `http://127.0.0.1:5173`. The development proxy forwa
 
 ## API endpoints
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /health` | Confirms service state and synthetic-data boundary |
-| `GET /deviations` | Returns scored synthetic deviations |
-| `GET /deviations?risk_level=High` | Filters the queue by calculated risk |
-| `GET /deviations?review_status=Pending%20Review` | Filters the queue by workflow state |
-| `GET /deviations/{deviation_id}` | Returns one explainable risk record |
-| `GET /summary` | Returns queue counts, overdue items, and unassigned records |
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/health` | GET | Confirms service state and synthetic-data boundary |
+| `/deviations` | GET | Returns scored synthetic deviations; filterable by `risk_level` and `review_status` |
+| `/deviations/{deviation_id}` | GET | Returns one explainable risk record |
+| `/deviations/{deviation_id}/review` | POST | Records a review action (`acknowledge` / `investigate` / `close`) with actor and optional comment; updates status and appends an immutable audit event |
+| `/summary` | GET | Returns queue counts, overdue items, and unassigned records |
+| `/audit-log` | GET | Returns the full immutable audit log, newest-first; filterable by `deviation_id` |
+| `/cache/invalidate` | POST | Manually invalidates the scored-deviations cache |
 
 ## Risk model
 
 The score is deliberately **explainable**, not predictive. The service assigns points for severity, past-due status, missing ownership, recurrence, and incomplete records. A High score is 5 or more, Medium is 2–4, and Low is 0–1. Each response returns the contributing reasons so that a reviewer can evaluate—not blindly accept—the prioritization.
 
+## Audit trail
+
+Every `POST /deviations/{id}/review` call appends one row to `audit_log`. The table is never updated or deleted—only inserted into—making it tamper-evident. Each row captures:
+
+| Field | Description |
+| --- | --- |
+| `actor` | Required identifier of the person taking the action |
+| `action` | `acknowledge`, `investigate`, or `close` |
+| `previous_status` / `new_status` | Before-and-after workflow state |
+| `comment` | Optional free-text rationale (max 1 000 chars) |
+| `ip_address` / `user_agent` | Client traceability |
+| `created_at` | UTC timestamp, server-generated |
+
+The `AuditMiddleware` additionally logs every other mutating HTTP request (method, path, status code, latency) to the same table for full API-level traceability.
+
 ## Repository structure
 
 ```text
-app/        FastAPI, SQLite loading, schemas, and scoring rules
+app/        FastAPI, SQLite loading, schemas, scoring rules, and audit trail
+              audit_db.py        — audit_log DB helpers (append-only)
+              audit_middleware.py — logs all mutating HTTP requests
+              audit_router.py    — POST /review and GET /audit-log endpoints
 data/       Synthetic CSV source; generated SQLite database is ignored
 frontend/   Vite + React reviewer dashboard
 sql/        Schema constraints and query indexes
-tests/      Automated behavior tests
+tests/      Automated behavior tests (37 tests)
 docs/       Architecture, risk rules, controls, and limitations
 ```
 
 ## Quality and scope
 
-`pytest -q` runs automated tests locally, and GitHub Actions runs them on every push and pull request. The project is intentionally scoped as a learning artifact; production use would require formal validation, requirements traceability, access control, audit trails, change control, security assessment, and governed quality procedures.
+`pytest -q` runs the full test suite locally; GitHub Actions runs it on every push and pull request. The project is intentionally scoped as a learning artifact. Production use would require formal validation, requirements traceability, access control, change control, security assessment, and governed quality procedures.
