@@ -189,10 +189,10 @@ quality-deviation-risk-monitor/
 │   ├── test_api.py          ← Endpoint integration tests
 │   ├── test_audit.py        ← Audit trail integration tests
 │   ├── test_cache.py        ← Cache unit and endpoint tests
-│   ├── test_database.py     ← Database loading tests
-│   ├── test_middleware.py   ← AuditMiddleware tests
-│   ├── test_models.py       ← Pydantic model validation tests
-│   └── test_scoring.py      ← Risk-scoring unit tests
+│   ├── test_database.py     ← Schema validation and data loading
+│   ├── test_middleware.py   ← AuditMiddleware request capture
+│   ├── test_models.py       ← Pydantic v2 model validation
+│   └── test_scoring.py      ← Rule-based score calculation
 ├── docs/
 │   ├── architecture.md      ← System design and data lineage
 │   └── risk-rules.md        ← Scoring rules, controls, and limitations
@@ -254,8 +254,8 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) for a full list of planned enhancements a
 
 **Built by [Alianis Reyes-Reyes](https://www.linkedin.com/in/alianis-reyes-reyes/)**
 
-Information Systems @ UPRM · Former Eli Lilly Intern (TechLilly / OcyonBio)
+Information Systems @ UPRM · Former Eli Lilly Intern
 
-*Building trusted systems from data to decision.*
+*Every iteration of this project is a question: what would make this more trustworthy, more traceable, more useful in a real regulated environment? That question doesn't have a final answer — and that's exactly what keeps it interesting.*
 
 </div>
