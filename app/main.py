@@ -4,11 +4,12 @@ from pathlib import Path
 import csv
 
 from fastapi import FastAPI, Query
+from app import config
 
 app = FastAPI(
     title="Quality Deviation Risk Monitor",
     description="Portfolio-safe API using synthetic data and transparent risk rules.",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "deviations.csv"
@@ -24,30 +25,53 @@ def score_deviation(record):
     score = 0
     reasons = []
 
-    if record["severity"] == "High":
-        score += 3
-        reasons.append("High severity")
-    elif record["severity"] == "Medium":
-        score += 1
-        reasons.append("Medium severity")
+    # Severity (ICH Q9(R1) §4)
+    sev_pts = config.SEVERITY_SCORES.get(record.get("severity", ""), 0)
+    if sev_pts:
+        score += sev_pts
+        reasons.append(f"{record['severity']} severity")
 
-    if date.fromisoformat(record["due_date"]) < date.today():
-        score += 3
-        reasons.append("Past due date")
+    # Past due date (ICH Q10 §3.2)
+    try:
+        if date.fromisoformat(record["due_date"]) < date.today():
+            score += config.SCORE_PAST_DUE_DATE
+            reasons.append("Past due date")
+    except (ValueError, KeyError):
+        pass
 
-    if not record["investigation_owner"].strip():
-        score += 2
+    # No investigation owner (ICH Q10 §3.2)
+    if not record.get("investigation_owner", "").strip():
+        score += config.SCORE_NO_OWNER
         reasons.append("No investigation owner assigned")
 
-    if record["repeat_occurrence"].lower() == "true":
-        score += 2
+    # Repeat occurrence (ICH Q10 §3.2)
+    if record.get("repeat_occurrence", "false").lower() == "true":
+        score += config.SCORE_REPEAT_OCCURRENCE
         reasons.append("Repeat occurrence")
 
-    if record["record_complete"].lower() != "true":
-        score += 2
+    # Record completeness (21 CFR Part 11 / EU Annex 11)
+    if record.get("record_complete", "false").lower() != "true":
+        score += config.SCORE_INCOMPLETE_RECORD
         reasons.append("Required data is incomplete")
 
-    risk_level = "High" if score >= 5 else "Medium" if score >= 2 else "Low"
+    # Aging (ICH Q10 §3.2 — 30/60-day global closure expectations)
+    if record.get("review_status", "").lower() != "closed":
+        try:
+            age_days = (date.today() - date.fromisoformat(record["opened_date"])).days
+            if age_days > config.AGING_THRESHOLD_DAYS_TIER2:
+                score += config.AGING_SCORE_TIER1 + config.AGING_SCORE_TIER2
+                reasons.append(f"Open more than {config.AGING_THRESHOLD_DAYS_TIER2} days — overdue escalation (ICH Q10)")
+            elif age_days > config.AGING_THRESHOLD_DAYS_TIER1:
+                score += config.AGING_SCORE_TIER1
+                reasons.append(f"Open more than {config.AGING_THRESHOLD_DAYS_TIER1} days (ICH Q10)")
+        except (ValueError, KeyError):
+            pass
+
+    risk_level = (
+        "High"   if score >= config.RISK_THRESHOLD_HIGH   else
+        "Medium" if score >= config.RISK_THRESHOLD_MEDIUM else
+        "Low"
+    )
     return {**record, "risk_score": score, "risk_level": risk_level, "risk_reasons": reasons}
 
 
@@ -60,16 +84,16 @@ def health():
 def deviations(risk_level: Optional[str] = Query(default=None, pattern="^(Low|Medium|High)$")):
     records = load_deviations()
     if risk_level:
-        records = [record for record in records if record["risk_level"] == risk_level]
+        records = [r for r in records if r["risk_level"] == risk_level]
     return {"count": len(records), "records": records}
 
 
 @app.get("/summary")
 def summary():
     records = load_deviations()
-    risk_counts = {level: sum(record["risk_level"] == level for record in records) for level in ["Low", "Medium", "High"]}
+    risk_counts = {level: sum(r["risk_level"] == level for r in records) for level in ["Low", "Medium", "High"]}
     review_counts = {}
-    for record in records:
-        status = record["review_status"]
+    for r in records:
+        status = r["review_status"]
         review_counts[status] = review_counts.get(status, 0) + 1
     return {"total_records": len(records), "risk_counts": risk_counts, "review_status_counts": review_counts}
