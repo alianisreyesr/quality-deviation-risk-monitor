@@ -16,7 +16,7 @@
 
 *A portfolio-safe, full-stack prototype for pharmaceutical Quality Data Engineering*
 
-[View API Docs](http://127.0.0.1:8000/docs) · [Architecture](docs/architecture.md) · [Risk Rules](docs/risk-rules.md) · [Changelog](CHANGELOG.md)
+[Run API Docs Locally](#quick-start) · [Architecture](docs/architecture.md) · [Risk Rules](docs/risk-rules.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -100,7 +100,9 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-# → API + Swagger UI at http://127.0.0.1:8000/docs
+# → API at http://127.0.0.1:8000
+# → Swagger UI (interactive API docs) at http://127.0.0.1:8000/docs
+# → ReDoc at http://127.0.0.1:8000/redoc
 
 # 3. Frontend (new terminal)
 cd frontend
@@ -128,7 +130,7 @@ docker compose up --build
 | `/audit-log` | GET | Full immutable audit log, newest-first; filterable by `deviation_id` |
 | `/cache/invalidate` | POST | Manual cache invalidation |
 
-> Full interactive docs auto-generated at `/docs` (Swagger UI) and `/redoc`.
+> Full interactive docs auto-generated at `/docs` (Swagger UI) and `/redoc` — run the project locally to explore.
 
 ---
 
@@ -197,7 +199,10 @@ quality-deviation-risk-monitor/
 │   ├── architecture.md      ← System design and data lineage
 │   └── risk-rules.md        ← Scoring rules, controls, and limitations
 ├── CHANGELOG.md
+├── CONTRIBUTING.md
 ├── IMPROVEMENTS.md          ← Planned enhancements and known gaps
+├── LICENSE
+├── SECURITY.md
 ├── Dockerfile
 └── docker-compose.yml
 ```
@@ -245,8 +250,8 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) for a full list of planned enhancements a
 
 | Project | Focus | Status |
 |---|---|---|
-| **CSV Evidence Tracker** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | 🔨 Coming soon |
 | **Student Assembly Registration** | Role-based access, institutional validation, PHP + MySQL | 🔨 In progress |
+| **CSV Evidence Tracker** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | 📋 [Planned — see IMPROVEMENTS.md](IMPROVEMENTS.md) |
 
 ---
 
