@@ -1,0 +1,38 @@
+# Render deployment configuration
+# Docs: https://render.com/docs/render-yaml-reference
+#
+# Deploy steps:
+#   1. Push this file to main (already done)
+#   2. Go to https://dashboard.render.com → New → Blueprint
+#   3. Connect your GitHub repo — Render will detect this file automatically
+#   4. Set the ALLOWED_ORIGINS env var to your Vercel frontend URL after deploy
+
+services:
+  - type: web
+    name: quality-deviation-risk-monitor-api
+    runtime: python
+    region: oregon          # free tier available; change to ohio/frankfurt as needed
+    plan: free
+    branch: main
+
+    buildCommand: pip install -r requirements-prod.txt && python scripts/seed_db.py
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: ENVIRONMENT
+        value: production
+      # Set this after your Vercel deploy — paste your Vercel URL here
+      # Example: https://quality-deviation-risk-monitor.vercel.app
+      - key: ALLOWED_ORIGINS
+        value: "https://your-vercel-app.vercel.app"
+
+    # Persist the SQLite database across deploys
+    # Render free tier: disk is ephemeral — this keeps data between restarts
+    disk:
+      name: sqlite-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
