@@ -1,29 +1,50 @@
 # Quality Deviation Risk Monitor
 
-A portfolio-safe prototype that turns synthetic quality-deviation records into transparent, rule-based risk signals. It demonstrates how data engineering, data integrity, and human review can support proactive quality oversight in regulated environments.
+> Portfolio-safe quality analytics prototype for prioritizing synthetic deviation records through a transparent, risk-based workflow.
 
-> **Confidentiality notice:** This project uses fictional data and simplified rules created exclusively for portfolio purposes. It does not contain proprietary information, code, processes, or data from any current or former employer.
+## Purpose
 
-## Why this project
+Quality teams often need to triage many deviation records before deciding which require immediate review. This project demonstrates a small, auditable decision-support workflow that ingests **synthetic** quality-deviation data, calculates and exposes risk-oriented signals, and presents the records through a FastAPI service and React dashboard.
 
-Quality teams often need to prioritize open deviations before periodic reporting cycles. This prototype provides a lightweight, explainable view of open records based on due-date status, severity, investigation progress, recurrence, and data-completeness checks.
+It is designed as a portfolio demonstration of data engineering, API development, automated testing, and validation-aware documentation—not as a production quality-management system.
 
-## What it demonstrates
+## Highlights
 
-- Python and FastAPI REST API design
-- SQL schema design and data-quality validation
-- Transparent, explainable rule-based risk scoring
-- Synthetic data handling and field-level data dictionary
-- Human-in-the-loop review status
-- Portfolio-safe documentation for regulated contexts
+- **Synthetic data only:** No patient, product, manufacturing, or proprietary information is used.
+- **Transparent decision support:** Risk prioritization is rule-based and intended to be inspectable in code and tests.
+- **Full-stack workflow:** Python, SQL, FastAPI, React, Docker, and automated tests.
+- **Quality-system awareness:** Documentation records intended use, scope, assumptions, verification evidence, and known limitations.
+- **Portfolio safe:** Built to discuss GxP/CSV concepts without claiming validated production use.
 
 ## Architecture
 
 ```text
-Synthetic CSV → SQLite staging table → validation + risk rules → FastAPI endpoints → reviewer-ready JSON output
+Synthetic CSV data
+       |
+       +-- SQL schema / data-loading script
+       |
+       v
+FastAPI risk-monitoring API
+       |
+       v
+React dashboard for prioritized review
 ```
 
-## Run locally
+See [Architecture](docs/architecture.md), [Data dictionary](docs/data-dictionary.md), and [Validation summary](docs/validation-summary.md).
+
+## Stack
+
+| Layer | Technologies |
+| --- | --- |
+| Data | CSV, SQL, Python |
+| API | FastAPI, Uvicorn |
+| UI | React, Vite |
+| Testing | Pytest, FastAPI TestClient |
+| Delivery | Docker, Docker Compose, GitHub Actions |
+
+## Quick start
+
+### Run the API locally
 
 ```bash
 python -m venv .venv
@@ -32,40 +53,59 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/docs` to test the API.
+Open the interactive API documentation at `http://127.0.0.1:8000/docs`.
 
-## API endpoints
+### Run with Docker
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /health` | Confirms the API is running |
-| `GET /deviations` | Returns all synthetic deviations with risk signals |
-| `GET /deviations?risk_level=High` | Filters deviations by risk level |
-| `GET /summary` | Returns counts by risk level and review status |
+```bash
+docker compose up --build
+```
 
-## Risk rules
+### Run tests
 
-The score is deliberately explainable rather than predictive. A record receives points when it is high severity, overdue, lacks an investigation owner, is a repeat occurrence, or has incomplete required data. The API returns the reasons alongside each score so a qualified reviewer can assess—not blindly accept—the prioritization.
+```bash
+pytest -q
+```
 
-## Data dictionary
+### Run the dashboard
 
-| Field | Description |
-| --- | --- |
-| `deviation_id` | Synthetic unique record identifier |
-| `severity` | Low, Medium, or High impact classification |
-| `due_date` | Target date for investigation closure |
-| `investigation_owner` | Assigned reviewer or owner |
-| `repeat_occurrence` | Whether a similar event has recurred |
-| `record_complete` | Whether required portfolio fields are populated |
-| `review_status` | Human review workflow state |
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Roadmap
+The dashboard expects the API to be running locally.
 
-- [ ] Add automated tests for validation and scoring rules
-- [ ] Add a simple React review interface
-- [ ] Add data lineage diagram and decision log
-- [ ] Containerize with Docker
+## Project structure
 
-## Tech stack
+```text
+app/                 FastAPI application and configuration
+data/                Synthetic deviation dataset
+docs/                Architecture, validation summary, data dictionary
+frontend/            React dashboard
+scripts/             Data-loading and utility scripts
+sql/                 Relational schema
+tests/               Automated API and risk-logic tests
+.github/workflows/   Continuous-integration workflows
+```
 
-Python · FastAPI · SQLite · SQL · CSV · Pydantic
+## Quality and validation boundary
+
+This repository demonstrates validation-aware engineering practices; it is **not** a validated computerized system. It must not be used to make real GxP, product-release, patient-safety, or manufacturing-quality decisions. Any production deployment would require organization-specific requirements, risk assessment, change control, data governance, security controls, computer-system validation, and approved operating procedures.
+
+## Skills demonstrated
+
+- Quality-data modeling and traceability-oriented documentation
+- Risk-based prioritization and explainable business rules
+- Python, SQL, FastAPI, REST API design, React, and Docker
+- Automated testing and CI-oriented software delivery
+- CSV/GAMP 5, ALCOA+, and 21 CFR Part 11 awareness
+
+## Portfolio narrative
+
+**Resume-ready description:** Built a portfolio-safe quality deviation risk-monitoring prototype using synthetic data, Python, SQL, FastAPI, React, Docker, and automated tests. Created validation-aware artifacts to demonstrate risk-based quality analytics and compliant-system design awareness.
+
+## Contributing and license
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). This project is released under the [MIT License](LICENSE).
