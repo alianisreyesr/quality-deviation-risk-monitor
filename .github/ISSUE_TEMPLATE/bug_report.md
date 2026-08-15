@@ -1,35 +1,30 @@
 ---
 name: Bug report
-about: Report a reproducible defect in the portfolio prototype
+about: Report a reproducible defect
 title: "[Bug]: "
 labels: bug
+assignees: "
 ---
 
 ## Summary
-
-Describe the observed behavior. Do not include confidential, personal, patient, manufacturing, batch, or proprietary information.
+Describe the observed behavior.
 
 ## Steps to reproduce
-
 1. 
 2. 
 3. 
 
 ## Expected behavior
-
-What should happen?
-
-## Actual behavior
-
-What happened instead?
+Describe what should have happened.
 
 ## Environment
-
 - OS:
-- Python version:
-- Browser, if applicable:
+- Python / Node version:
+- Docker version, if applicable:
 
-## Verification
+## Evidence
+Provide logs or screenshots with all secrets, personal data, and proprietary information removed.
 
-- [ ] I confirmed that this report contains no sensitive or regulated data.
-- [ ] I checked existing issues.
+## Data safety checklist
+- [ ] I used synthetic or non-production data.
+- [ ] I removed secrets, credentials, personal data, and confidential information.

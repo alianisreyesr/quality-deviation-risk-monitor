@@ -1,111 +1,47 @@
 # Quality Deviation Risk Monitor
 
-> Portfolio-safe quality analytics prototype for prioritizing synthetic deviation records through a transparent, risk-based workflow.
+Portfolio-safe quality deviation risk monitoring prototype built with Python, SQL, FastAPI, and synthetic data.
 
-## Purpose
+## Portfolio safety
 
-Quality teams often need to triage many deviation records before deciding which require immediate review. This project demonstrates a small, auditable decision-support workflow that ingests **synthetic** quality-deviation data, calculates and exposes risk-oriented signals, and presents the records through a FastAPI service and React dashboard.
+This repository uses **synthetic, non-production data only**. It is a portfolio prototype, not a validated GxP system, and is not a substitute for approved procedures, validation documentation, production controls, or regulated decision-making. See [Portfolio Safety and Intended Use](docs/PORTFOLIO_SAFETY.md).
 
-It is designed as a portfolio demonstration of data engineering, API development, automated testing, and validation-aware documentation—not as a production quality-management system.
+## Focus
 
-## Highlights
+The project demonstrates how structured quality data can support proactive monitoring by applying documented scoring rules to open deviations and surfacing tiered risk signals for human review.
 
-- **Synthetic data only:** No patient, product, manufacturing, or proprietary information is used.
-- **Transparent decision support:** Risk prioritization is rule-based and intended to be inspectable in code and tests.
-- **Full-stack workflow:** Python, SQL, FastAPI, React, Docker, and automated tests.
-- **Quality-system awareness:** Documentation records intended use, scope, assumptions, verification evidence, and known limitations.
-- **Portfolio safe:** Built to discuss GxP/CSV concepts without claiming validated production use.
+## Technology
 
-## Architecture
+- Python and FastAPI
+- SQL-based data access
+- Containerized local development with Docker
+- Synthetic demonstration data
 
-```text
-Synthetic CSV data
-       |
-       +-- SQL schema / data-loading script
-       |
-       v
-FastAPI risk-monitoring API
-       |
-       v
-React dashboard for prioritized review
-```
-
-See [Architecture](docs/architecture.md), [Data dictionary](docs/data-dictionary.md), and [Validation summary](docs/validation-summary.md).
-
-## Stack
-
-| Layer | Technologies |
-| --- | --- |
-| Data | CSV, SQL, Python |
-| API | FastAPI, Uvicorn |
-| UI | React, Vite |
-| Testing | Pytest, FastAPI TestClient |
-| Delivery | Docker, Docker Compose, GitHub Actions |
-
-## Quick start
-
-### Run the API locally
+## Local setup
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-Open the interactive API documentation at `http://127.0.0.1:8000/docs`.
-
-### Run with Docker
-
-```bash
+git clone https://github.com/alianisreyesr/quality-deviation-risk-monitor.git
+cd quality-deviation-risk-monitor
 docker compose up --build
 ```
 
-### Run tests
+Review the project files and environment configuration before running locally. Never use production, proprietary, personal, or regulated records.
 
-```bash
-pytest -q
-```
+## Governance principles demonstrated
 
-### Run the dashboard
+- Synthetic-data boundary for public demonstrations
+- Traceable and reviewable risk logic
+- Human-in-the-loop interpretation of risk signals
+- Clear separation between a prototype and a validated production system
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## Contributing
 
-The dashboard expects the API to be running locally.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Use the issue and pull-request templates to document validation, data safety, and governance considerations.
 
-## Project structure
+## Security
 
-```text
-app/                 FastAPI application and configuration
-data/                Synthetic deviation dataset
-docs/                Architecture, validation summary, data dictionary
-frontend/            React dashboard
-scripts/             Data-loading and utility scripts
-sql/                 Relational schema
-tests/               Automated API and risk-logic tests
-.github/workflows/   Continuous-integration workflows
-```
+See [SECURITY.md](SECURITY.md) for responsible disclosure and repository safety guidance.
 
-## Quality and validation boundary
+## License
 
-This repository demonstrates validation-aware engineering practices; it is **not** a validated computerized system. It must not be used to make real GxP, product-release, patient-safety, or manufacturing-quality decisions. Any production deployment would require organization-specific requirements, risk assessment, change control, data governance, security controls, computer-system validation, and approved operating procedures.
-
-## Skills demonstrated
-
-- Quality-data modeling and traceability-oriented documentation
-- Risk-based prioritization and explainable business rules
-- Python, SQL, FastAPI, REST API design, React, and Docker
-- Automated testing and CI-oriented software delivery
-- CSV/GAMP 5, ALCOA+, and 21 CFR Part 11 awareness
-
-## Portfolio narrative
-
-**Resume-ready description:** Built a portfolio-safe quality deviation risk-monitoring prototype using synthetic data, Python, SQL, FastAPI, React, Docker, and automated tests. Created validation-aware artifacts to demonstrate risk-based quality analytics and compliant-system design awareness.
-
-## Contributing and license
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). This project is released under the [MIT License](LICENSE).
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
