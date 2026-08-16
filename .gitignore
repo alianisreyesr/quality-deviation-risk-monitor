@@ -1,6 +1,49 @@
-__pycache__/
-*.py[cod]
+```
+# Executable/binary files
+*.exe
+*.dll
+*.so
+*.a
+*.o
+*.obj
+*.out
+
+# Dependencies
+node_modules/
+venv/
 .venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+target/
+.gradle/
+
+# Build/dist directories
+dist/
+build/
+
+# Environment files
 .env
-*.db
+.env.local
+*.env.*
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# System files
 .DS_Store
+Thumbs.db
+```.next/
+.next/
