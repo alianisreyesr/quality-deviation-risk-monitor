@@ -1,1 +1,90 @@
-import{useEffect,useState}from'react';import{createRoot}from'react-dom/client';import'./styles.css';const A='http://127.0.0.1:8000';function App(){const[r,setR]=useState([]),[f,setF]=useState('All'),[s,setS]=useState(null);useEffect(()=>{fetch(A+'/deviations').then(x=>x.json()).then(x=>setR(x.records))},[]);const d=f==='All'?r:r.filter(x=>x.risk_level===f);return <main><p className="eyebrow">QUALITY DEVIATION RISK MONITOR</p><h1>Reviewer Dashboard</h1><p className="notice">Synthetic portfolio data — not for production or regulated decision-making.</p><section className="cards">{['High','Medium','Low'].map(x=><button className={x} onClick={()=>setF(x)}>{x}<b>{r.filter(y=>y.risk_level===x).length}</b></button>)}<button onClick={()=>setF('All')}>Show all</button></section><table><thead><tr><th>ID</th><th>Deviation</th><th>Risk</th><th>Owner</th><th></th></tr></thead><tbody>{d.map(x=><tr><td>{x.deviation_id}</td><td>{x.title}</td><td>{x.risk_level} · {x.risk_score}</td><td>{x.investigation_owner||'Unassigned'}</td><td><button onClick={()=>setS(x)}>Review reasons</button></td></tr>)}</tbody></table>{s&&<aside><button onClick={()=>setS(null)}>Close</button><h2>{s.deviation_id}</h2><h3>Why it was flagged</h3><ul>{s.risk_reasons.map(x=><li>{x}</li>)}</ul><p>Human review remains required.</p></aside>}</main>}createRoot(document.getElementById('root')).render(<App/>);
+import { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import './styles.css';
+
+const API_BASE = 'http://127.0.0.1:8000';
+
+function App() {
+  const [records, setRecords] = useState([]);
+  const [filter, setFilter] = useState('All');
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/deviations`)
+      .then((res) => res.json())
+      .then((data) => setRecords(data.records))
+      .catch((err) => console.error('Failed to load deviations:', err));
+  }, []);
+
+  const filtered =
+    filter === 'All'
+      ? records
+      : records.filter((r) => r.risk_level === filter);
+
+  return (
+    <main>
+      <p className="eyebrow">QUALITY DEVIATION RISK MONITOR</p>
+      <h1>Reviewer Dashboard</h1>
+      <p className="notice">
+        Synthetic portfolio data — not for production or regulated decision-making.
+      </p>
+
+      <section className="cards">
+        {['High', 'Medium', 'Low'].map((level) => (
+          <button
+            key={level}
+            className={level.toLowerCase()}
+            onClick={() => setFilter(level)}
+          >
+            {level}
+            <b>{records.filter((r) => r.risk_level === level).length}</b>
+          </button>
+        ))}
+        <button onClick={() => setFilter('All')}>Show all</button>
+      </section>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Deviation</th>
+            <th>Risk</th>
+            <th>Owner</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((record) => (
+            <tr key={record.deviation_id}>
+              <td>{record.deviation_id}</td>
+              <td>{record.title}</td>
+              <td>
+                {record.risk_level} · {record.risk_score}
+              </td>
+              <td>{record.investigation_owner || 'Unassigned'}</td>
+              <td>
+                <button onClick={() => setSelected(record)}>Review reasons</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {selected && (
+        <aside>
+          <button onClick={() => setSelected(null)}>Close</button>
+          <h2>{selected.deviation_id}</h2>
+          <h3>Why it was flagged</h3>
+          <ul>
+            {selected.risk_reasons.map((reason, idx) => (
+              <li key={idx}>{reason}</li>
+            ))}
+          </ul>
+          <p>Human review remains required.</p>
+        </aside>
+      )}
+    </main>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
