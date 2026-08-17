@@ -16,7 +16,7 @@
 
 *A portfolio-safe, full-stack prototype for pharmaceutical Quality Data Engineering*
 
-[Run API Docs Locally](#quick-start) · [Architecture](docs/architecture.md) · [Risk Rules](docs/risk-rules.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+[Quick Start](#quick-start) · [Architecture](docs/architecture.md) · [Risk Rules](docs/risk-rules.md) · [Regulatory References](docs/REGULATORY_REFERENCES.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -49,7 +49,7 @@ In GxP manufacturing, unreviewed deviations accumulate regulatory risk. This pro
 | **API Engineering** | FastAPI + Pydantic v2 with rate limiting (SlowAPI), structured error handling, and OpenAPI docs auto-generated |
 | **Testing & CI** | 57 tests across 8 modules (unit + integration); GitHub Actions runs the full suite on every push |
 | **Containerization** | Dockerfile + docker-compose for reproducible, environment-agnostic deployment |
-| **Documentation** | Architecture, risk rules, controls, known limitations, and CHANGELOG — the documentation habits expected in regulated environments |
+| **Documentation** | Architecture, risk rules, **regulatory references (FDA / MHRA / PIC/S / EU)**, controls, known limitations, and CHANGELOG |
 
 ---
 
@@ -82,7 +82,7 @@ In GxP manufacturing, unreviewed deviations accumulate regulatory risk. This pro
                           └───────────────────┘
 ```
 
-See [architecture and data lineage →](docs/architecture.md)
+See [architecture and data lineage →](docs/architecture.md) · [Regulatory references →](docs/REGULATORY_REFERENCES.md)
 
 ---
 
@@ -196,11 +196,12 @@ quality-deviation-risk-monitor/
 │   ├── test_models.py       ← Pydantic v2 model validation
 │   └── test_scoring.py      ← Rule-based score calculation
 ├── docs/
-│   ├── architecture.md      ← System design and data lineage
-│   └── risk-rules.md        ← Scoring rules, controls, and limitations
+│   ├── architecture.md
+│   ├── risk-rules.md
+│   └── REGULATORY_REFERENCES.md  ← FDA · MHRA · PIC/S · EU · CSA
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
-├── IMPROVEMENTS.md          ← Planned enhancements and known gaps
+├── IMPROVEMENTS.md
 ├── LICENSE
 ├── SECURITY.md
 ├── Dockerfile
@@ -215,16 +216,6 @@ quality-deviation-risk-monitor/
 
 ```bash
 pytest -q
-```
-
-```text
-tests/test_api.py          ← REST endpoint integration
-tests/test_audit.py        ← Audit trail immutability and completeness
-tests/test_cache.py        ← TTL cache behavior
-tests/test_database.py     ← Schema validation and data loading
-tests/test_middleware.py   ← AuditMiddleware request capture
-tests/test_models.py       ← Pydantic v2 model validation
-tests/test_scoring.py      ← Rule-based score calculation
 ```
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the CI configuration.
@@ -242,7 +233,7 @@ This is a **learning and portfolio artifact** built to demonstrate GxP-relevant 
 - Security assessment and penetration testing
 - Governed SOPs and procedural controls
 
-See [IMPROVEMENTS.md](IMPROVEMENTS.md) for a full list of planned enhancements and known limitations.
+See [IMPROVEMENTS.md](IMPROVEMENTS.md) and [docs/REGULATORY_REFERENCES.md](docs/REGULATORY_REFERENCES.md).
 
 ---
 
