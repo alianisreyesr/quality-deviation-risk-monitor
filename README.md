@@ -250,8 +250,8 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) for a full list of planned enhancements a
 
 | Project | Focus | Status |
 |---|---|---|
+| **[CSV Evidence Tracker](https://github.com/alianisreyesr/csv-evidence-tracker)** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | ✅ Live |
 | **Student Assembly Registration** | Role-based access, institutional validation, PHP + MySQL | 🔨 In progress |
-| **CSV Evidence Tracker** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | 📋 [Planned — see IMPROVEMENTS.md](IMPROVEMENTS.md) |
 
 ---
 
