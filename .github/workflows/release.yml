@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release Tag (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run test suite
+        run: |
+          pytest -v
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }} - Quality Deviation Risk Monitor
+          body: |
+            ## Overview
+            Official **v1.0.0 release** of the **Quality Deviation Risk Monitor** portfolio prototype.
+
+            ### What's Included
+            - **Full-Stack Deviation Engine:** FastAPI backend + React reviewer dashboard with SQLite storage.
+            - **ALCOA+ Audit Trail:** Immutable append-only audit log for reviewer actions (`acknowledge`, `investigate`, `close`) with UTC timestamps.
+            - **Deterministic Risk Scoring:** Explainable rule-based scoring engine with versioned rule configurations.
+            - **Automated Testing Suite:** 57 automated unit, integration, and benchmark tests passing in CI.
+            - **Regulatory Framework:** Comprehensive documentation aligned with FDA, MHRA, PIC/S, and EU Annex 11 guidance.
+            - **Containerization:** Production-ready `Dockerfile` and `docker-compose.yml` for reproducible local and cloud deployment.
+
+            *All demonstration data is 100% synthetic.*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
