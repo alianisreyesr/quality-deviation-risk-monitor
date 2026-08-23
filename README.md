@@ -55,31 +55,22 @@ In GxP manufacturing, unreviewed deviations accumulate regulatory risk. This pro
 
 ## Architecture
 
-```text
-┌─────────────────┐
-│  Synthetic CSV  │  ← All data is fictional and non-confidential
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     ┌──────────────────────────┐
-│  SQLite Staging │────▶│  Validation + Risk Rules  │
-│  (schema + idx) │     │  (explainable, versioned) │
-└─────────────────┘     └────────────┬─────────────┘
-                                      │
-                         ┌────────────▼─────────────┐
-                         │       FastAPI Layer        │
-                         │  + AuditMiddleware         │
-                         │    (logs every mutating    │
-                         │     request → audit_log)   │
-                         └────────────┬─────────────┘
-                                      │
-              ┌───────────────────────┼──────────────────┐
-              ▼                       ▼                  ▼
-   ┌──────────────────┐   ┌───────────────────┐  ┌─────────────┐
-   │  React Dashboard │   │   audit_log table  │  │  /docs UI   │
-   │  (reviewer UI)   │   │  (append-only,     │  │  (Swagger)  │
-   └──────────────────┘   │   tamper-evident)  │  └─────────────┘
-                          └───────────────────┘
+```mermaid
+flowchart TD
+    CSV[Synthetic CSV\nAll data is fictional]
+    DB[(SQLite Staging\nschema + indexes)]
+    RULES[Validation + Risk Rules\nexplainable · versioned]
+    API["FastAPI Layer\n+ AuditMiddleware\n(logs every mutating request → audit_log)"]
+    UI[React Dashboard\nreviewer UI]
+    AUDIT[(audit_log table\nappend-only · tamper-evident)]
+    DOCS[/docs UI\nSwagger/]
+
+    CSV --> DB
+    DB --> RULES
+    RULES --> API
+    API --> UI
+    API --> AUDIT
+    API --> DOCS
 ```
 
 See [architecture and data lineage →](docs/architecture.md) · [Regulatory references →](docs/REGULATORY_REFERENCES.md)
