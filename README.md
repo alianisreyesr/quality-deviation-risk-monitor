@@ -173,39 +173,20 @@ Every `POST /deviations/{id}/review` appends one immutable row. `AuditMiddleware
 
 ## Repository Structure
 
-```text
-quality-deviation-risk-monitor/
-├── app/
-│   ├── main.py              ← FastAPI application entry point
-│   ├── models.py            ← Pydantic v2 models for deviations
-│   ├── audit_db.py          ← audit_log DB helpers (append-only)
-│   ├── audit_middleware.py  ← AuditMiddleware: logs all mutating HTTP requests
-│   ├── audit_models.py      ← Pydantic models for audit events
-│   ├── audit_router.py      ← POST /review + GET /audit-log
-│   └── cache.py             ← In-memory TTL cache
-├── data/                    ← Synthetic CSV; SQLite DB gitignored
-├── frontend/                ← Vite + React reviewer dashboard
-├── sql/                     ← Schema constraints and query indexes
-├── scripts/                 ← Data generation and utility scripts
-├── tests/
-│   ├── test_api.py          ← Endpoint integration tests
-│   ├── test_audit.py        ← Audit trail integration tests
-│   ├── test_cache.py        ← Cache unit and endpoint tests
-│   ├── test_database.py     ← Schema validation and data loading
-│   ├── test_middleware.py   ← AuditMiddleware request capture
-│   ├── test_models.py       ← Pydantic v2 model validation
-│   └── test_scoring.py      ← Rule-based score calculation
-├── docs/
-│   ├── architecture.md
-│   ├── risk-rules.md
-│   └── REGULATORY_REFERENCES.md  ← FDA · MHRA · PIC/S · EU · CSA
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── IMPROVEMENTS.md
-├── LICENSE
-├── SECURITY.md
-├── Dockerfile
-└── docker-compose.yml
+```mermaid
+flowchart TB
+  R["quality-deviation-risk-monitor"]
+  R --> A["app — FastAPI, domain models, audit trail, and cache"]
+  A --> AA["main.py and models.py — API and deviation contracts"]
+  A --> AB["audit modules — append-only evidence and review routes"]
+  A --> AC["cache.py — in-memory TTL cache"]
+  R --> D["data — synthetic CSV inputs"]
+  R --> F["frontend — Vite and React reviewer dashboard"]
+  R --> S["sql — schema constraints and indexes"]
+  R --> U["scripts — data generation and utilities"]
+  R --> T["tests — API, audit, cache, database, middleware, models, and scoring"]
+  R --> O["docs — architecture, risk rules, and regulatory references"]
+  R --> P["Docker, contribution, security, changelog, and license files"]
 ```
 
 ---
