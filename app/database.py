@@ -15,6 +15,25 @@ from app.logger import setup_logger
 
 logger = setup_logger(__name__)
 
+# CSV / legacy labels → reviewer-workflow vocabulary used by audit_router.
+REVIEW_STATUS_MAP = {
+    "Not Started": "Open",
+    "Pending Review": "Open",
+    "In Review": "Under Review",
+    "Escalated": "Investigation In Progress",
+    "Open": "Open",
+    "Under Review": "Under Review",
+    "Investigation In Progress": "Investigation In Progress",
+    "Closed": "Closed",
+}
+
+
+def _normalize_review_status(value: str) -> str:
+    mapped = REVIEW_STATUS_MAP.get(str(value).strip())
+    if mapped is None:
+        raise ValueError(f"Unknown review_status {value!r}")
+    return mapped
+
 
 # ---------------------------------------------------------------------------
 # Synchronous helpers (sqlite3)
@@ -63,6 +82,9 @@ def initialize_database(database_file: Path = DATABASE_FILE) -> None:
             if not rows:
                 logger.warning("CSV file is empty")
                 return
+
+            for row in rows:
+                row["review_status"] = _normalize_review_status(row.get("review_status", ""))
 
             conn.executemany(
                 """

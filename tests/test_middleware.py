@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.audit_db import fetch_audit_log
+from app.audit_db import fetch_audit_log, update_deviation_status
 from app.audit_middleware import _extract_deviation_id
 from app.database import fetch_deviations
 
@@ -52,6 +52,7 @@ def test_post_review_is_logged_by_middleware():
     records = fetch_deviations()
     assert records, "Need at least one deviation"
     dev_id = records[0]["deviation_id"]
+    update_deviation_status(dev_id, "Open")
 
     before = len(fetch_audit_log(deviation_id=dev_id))
     client.post(
@@ -88,6 +89,7 @@ def test_x_actor_header_is_captured_when_no_body_actor():
     """Middleware should fall back to X-Actor header when body has no 'actor' field."""
     records = fetch_deviations()
     dev_id = records[0]["deviation_id"]
+    update_deviation_status(dev_id, "Open")
     # POST with actor in body (normal path) — just verify it doesn't 500
     response = client.post(
         f"/deviations/{dev_id}/review",

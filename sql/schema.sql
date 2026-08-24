@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS deviations (
     repeat_occurrence   INTEGER NOT NULL CHECK (repeat_occurrence IN (0, 1, 'True', 'False')),
     record_complete     INTEGER NOT NULL CHECK (record_complete IN (0, 1, 'True', 'False')),
     review_status       TEXT    NOT NULL CHECK (review_status IN (
-                            'Not Started', 'Pending Review', 'In Review', 'Escalated', 'Closed'
+                            'Open', 'Under Review', 'Investigation In Progress', 'Closed'
                         ))
 );
 

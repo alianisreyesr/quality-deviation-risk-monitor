@@ -70,6 +70,13 @@ class AuditMiddleware(BaseHTTPMiddleware):
             (datetime.now(timezone.utc) - start).total_seconds() * 1000, 2
         )
 
+        # Domain review events are written by audit_router. Skip 4xx/5xx so a
+        # rejected transition does not pollute the append-only trail.
+        if response.status_code >= 400:
+            return response
+        if request.url.path.rstrip("/").endswith("/review"):
+            return response
+
         ip_address = (
             request.client.host if request.client else "unknown"
         )

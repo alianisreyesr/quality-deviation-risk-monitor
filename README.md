@@ -9,7 +9,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-audit%20trail-003B57?style=flat&logo=sqlite&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=flat&logo=pydantic&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=flat&logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-57%20passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/tests-112%20passing-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
 **GxP · CSV · 21 CFR Part 11 · ALCOA+ · Data Integrity · Audit Trail**
@@ -47,7 +47,7 @@ In GxP manufacturing, unreviewed deviations accumulate regulatory risk. This pro
 | **ALCOA+ Data Integrity** | Attributable (actor header), Legible, Contemporaneous, Original, Accurate — modeled in schema and API layer |
 | **Explainable Risk Scoring** | Rule-based, version-controlled scorer; every response returns `contributing_reasons[]` so reviewers can evaluate — not blindly accept — the output |
 | **API Engineering** | FastAPI + Pydantic v2 with rate limiting (SlowAPI), structured error handling, and OpenAPI docs auto-generated |
-| **Testing & CI** | 57 tests across 8 modules (unit + integration); GitHub Actions runs the full suite on every push |
+| **Testing & CI** | 112 tests across 10 modules (unit + integration); GitHub Actions runs the full suite on every push |
 | **Containerization** | Dockerfile + docker-compose for reproducible, environment-agnostic deployment |
 | **Documentation** | Architecture, risk rules, **regulatory references (FDA / MHRA / PIC/S / EU)**, controls, known limitations, and CHANGELOG |
 
@@ -203,7 +203,7 @@ quality-deviation-risk-monitor/
 
 ## Test Suite
 
-57 tests · 8 modules · runs on every push via GitHub Actions CI
+112 tests · 10 modules · runs on every push via GitHub Actions CI
 
 ```bash
 pytest -q
