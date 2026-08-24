@@ -3,6 +3,7 @@
 <div align="center">
 
 [![CI](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/codeql.yml/badge.svg)](https://github.com/alianisreyesr/quality-deviation-risk-monitor/actions/workflows/codeql.yml)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-Vite-20232A?style=flat&logo=react&logoColor=61DAFB)
@@ -16,7 +17,7 @@
 
 *A portfolio-safe, full-stack prototype for pharmaceutical Quality Data Engineering*
 
-[Quick Start](#quick-start) · [Architecture](docs/architecture.md) · [Risk Rules](docs/risk-rules.md) · [Regulatory References](docs/REGULATORY_REFERENCES.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+[Screenshots](#portfolio-preview) · [Quick Start](#quick-start) · [Case study](docs/CASE_STUDY.md) · [Architecture](docs/architecture.md) · [Risk Rules](docs/risk-rules.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -25,6 +26,14 @@
 > **⚠️ Data Boundary:** Every record, name, and scenario is entirely fictional. This repository contains no proprietary information, employer data, processes, or code. It is not validated software and must not be used for regulated quality decisions.
 
 ---
+
+## Portfolio preview
+
+| Reviewer queue | Explainable review panel |
+|---|---|
+| ![Synthetic deviation reviewer queue with risk summary](docs/assets/dashboard.png) | ![Explainable risk panel showing contributing rules and human-review boundary](docs/assets/review-panel.png) |
+
+See the [case study](docs/CASE_STUDY.md) for the business problem, users, decisions, evidence, and production boundary.
 
 ## What This Is
 
