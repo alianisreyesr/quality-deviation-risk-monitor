@@ -1,0 +1,15 @@
+# Development and testing dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Testing
+pytest>=8.2
+pytest-asyncio>=0.23
+httpx>=0.27          # async test client for FastAPI
+pytest-cov>=5.0      # coverage reporting
+coverage[toml]>=7.5
+
+# Linting
+ruff>=0.5
+
+# Type checking
+mypy>=1.10
