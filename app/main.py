@@ -130,6 +130,7 @@ def summary():
 
 
 @app.post("/cache/invalidate")
-def cache_invalidate() -> dict[str, str]:
+@limiter.limit("10/minute")
+def cache_invalidate(request: Request) -> dict[str, str]:
     invalidate_cache()
     return {"status": "ok", "message": "cache invalidated"}

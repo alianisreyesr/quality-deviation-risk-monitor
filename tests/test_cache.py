@@ -6,7 +6,7 @@ Covers:
 - get_cached_scored()  (cache-hit and cache-miss paths)
 - POST /cache/invalidate  endpoint
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -51,7 +51,7 @@ def test_expired_cache_returns_none():
     cache = CachedScoredDeviations(ttl_seconds=1)
     cache.set([{"deviation_id": "DEV-003"}])
     # Simulate expiry by backdating the timestamp
-    cache._timestamp = datetime.now() - timedelta(seconds=10)
+    cache._timestamp = datetime.now(timezone.utc) - timedelta(seconds=10)
     assert cache.is_valid() is False
     assert cache.get() is None
 

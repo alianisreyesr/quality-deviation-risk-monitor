@@ -17,23 +17,23 @@ GET /audit-log
     Optional ?deviation_id= query param to filter by deviation.
 """
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, HTTPException, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from app.audit_db import (
+    DeviationNotFoundError,
+    TransitionNotAllowedError,
+    fetch_audit_log,
+    fetch_deviation_current_status,
+    insert_audit_event,
+    transition_deviation_status,
+)
 from app.audit_models import (
     AuditEventResponse,
     AuditTrailResponse,
     ReviewActionRequest,
     TransitionRejectedResponse,
-)
-from app.audit_db import (
-    fetch_audit_log,
-    insert_audit_event,
-    update_deviation_status,
-    fetch_deviation_current_status,
 )
 from app.cache import invalidate_cache
 from app.logger import setup_logger
@@ -60,11 +60,6 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "Investigation In Progress": {"close"},
     "Closed":                    set(),  # terminal state — no further actions
 }
-
-
-def _allowed_actions_for(status: str) -> list[str]:
-    """Return the sorted list of actions permitted from a given status."""
-    return sorted(ALLOWED_TRANSITIONS.get(status, set()))
 
 
 @router.post(
@@ -106,44 +101,42 @@ async def review_deviation(
         HTTPException 500: Database error.
     """
     try:
-        # --- Resolve current status ---
-        current_status = fetch_deviation_current_status(deviation_id)
-        if current_status is None:
+        # --- Validate and apply the transition atomically ---
+        # transition_deviation_status takes SQLite's write lock before it
+        # reads the current status, so two concurrent requests for the same
+        # deviation can't both observe the same pre-transition status and
+        # both succeed (see its docstring for the race this closes).
+        try:
+            previous_status, new_status = transition_deviation_status(
+                deviation_id,
+                body.action,
+                action_to_status=ACTION_TO_STATUS,
+                allowed_transitions=ALLOWED_TRANSITIONS,
+            )
+        except DeviationNotFoundError:
             logger.warning(f"Review attempted on non-existent deviation {deviation_id}")
             raise HTTPException(status_code=404, detail="Deviation not found")
-
-        # --- Validate state transition ---
-        permitted = ALLOWED_TRANSITIONS.get(current_status, set())
-        if body.action not in permitted:
-            allowed = _allowed_actions_for(current_status)
+        except TransitionNotAllowedError as exc:
             logger.warning(
                 f"Blocked transition: deviation={deviation_id} "
-                f"status={current_status!r} action={body.action!r} "
-                f"allowed={allowed}"
+                f"status={exc.current_status!r} action={body.action!r} "
+                f"allowed={exc.allowed_actions}"
             )
             raise HTTPException(
                 status_code=409,
                 detail={
-                    "detail": f"Action '{body.action}' is not permitted when status is '{current_status}'.",
+                    "detail": f"Action '{body.action}' is not permitted when status is '{exc.current_status}'.",
                     "deviation_id": deviation_id,
-                    "current_status": current_status,
+                    "current_status": exc.current_status,
                     "requested_action": body.action,
-                    "allowed_actions": allowed,
+                    "allowed_actions": exc.allowed_actions,
                 },
             )
-
-        # --- Perform status update ---
-        new_status = ACTION_TO_STATUS[body.action]
-        previous_status = update_deviation_status(deviation_id, new_status)
-
-        if previous_status is None:
-            # Extremely unlikely race condition guard
-            raise HTTPException(status_code=404, detail="Deviation not found")
 
         ip_address = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("User-Agent", "")[:512]
 
-        event_id = insert_audit_event(
+        event_id, created_at = insert_audit_event(
             action=body.action,
             actor=body.actor,
             deviation_id=deviation_id,
@@ -171,7 +164,7 @@ async def review_deviation(
             comment=body.comment,
             previous_status=previous_status,
             new_status=new_status,
-            created_at=datetime.now(timezone.utc),
+            created_at=created_at,
         )
 
     except HTTPException:

@@ -3,7 +3,7 @@
 Covers:
 - Mutating requests (POST) are logged to the audit trail
 - GET requests are NOT logged by the middleware
-- /cache/invalidate is excluded from middleware logging
+- /cache/invalidate is logged by the middleware (no route-level audit call)
 - _extract_deviation_id path-parsing helper
 - X-Actor header fallback
 """
@@ -73,12 +73,13 @@ def test_get_request_does_not_add_middleware_event():
     assert len(after) == len(before)
 
 
-def test_cache_invalidate_is_excluded_from_middleware_logging():
-    """POST /cache/invalidate is in EXCLUDED_PATHS and must not add an audit event."""
-    before = fetch_audit_log()
+def test_cache_invalidate_is_logged_by_middleware():
+    """POST /cache/invalidate has no route-level audit call, so the generic
+    middleware is its only audit coverage — it must add an event."""
+    before = len(fetch_audit_log())
     client.post("/cache/invalidate")
-    after = fetch_audit_log()
-    assert len(after) == len(before)
+    after = len(fetch_audit_log())
+    assert after > before
 
 
 # ---------------------------------------------------------------------------
