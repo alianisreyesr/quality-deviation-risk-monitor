@@ -83,8 +83,14 @@ def insert_audit_event(
     user_agent: str | None = None,
     status_code: int | None = None,
     latency_ms: float | None = None,
-) -> int:
-    """Insert one immutable event with a generated correlation ID when absent."""
+) -> tuple[int, str]:
+    """Insert one immutable event with a generated correlation ID when absent.
+
+    Returns:
+        (event_id, created_at) — the caller should echo this created_at back
+        rather than generating its own, so a response can't claim a
+        timestamp that differs from the one actually persisted.
+    """
     created_at = datetime.now(timezone.utc).isoformat()
     event_correlation_id = correlation_id or str(uuid4())
     event_reason = reason if reason is not None else comment
@@ -114,7 +120,7 @@ def insert_audit_event(
                 f"Audit event #{cursor.lastrowid} recorded: {action} by {actor} "
                 f"correlation_id={event_correlation_id}"
             )
-            return cursor.lastrowid  # type: ignore[return-value]
+            return cursor.lastrowid, created_at  # type: ignore[return-value]
     except sqlite3.DatabaseError as exc:
         logger.error(f"Failed to insert audit event: {exc}")
         raise
@@ -180,4 +186,82 @@ def update_deviation_status(deviation_id: str, new_status: str) -> str | None:
         return previous
     except sqlite3.DatabaseError as exc:
         logger.error(f"Failed to update deviation status: {exc}")
+        raise
+
+
+class DeviationNotFoundError(Exception):
+    """Raised when a review transition targets a deviation that doesn't exist."""
+
+
+class TransitionNotAllowedError(Exception):
+    """Raised when a review action isn't permitted from the current status."""
+
+    def __init__(self, current_status: str, allowed_actions: list[str]) -> None:
+        self.current_status = current_status
+        self.allowed_actions = allowed_actions
+        super().__init__(
+            f"transition not allowed from status={current_status!r}; "
+            f"allowed actions={allowed_actions}"
+        )
+
+
+def transition_deviation_status(
+    deviation_id: str,
+    action: str,
+    *,
+    action_to_status: dict[str, str],
+    allowed_transitions: dict[str, set[str]],
+) -> tuple[str, str]:
+    """Atomically validate and apply one review-status transition.
+
+    ``BEGIN IMMEDIATE`` takes SQLite's write lock before the status is read,
+    so a concurrent call for the same deviation blocks until this one
+    commits or rolls back. That closes the check-then-act race where two
+    requests could both read the same pre-transition status and both
+    succeed, producing two audit rows that each claim a ``previous_status``
+    that is only true for one of them.
+
+    Returns:
+        (previous_status, new_status) on success.
+
+    Raises:
+        DeviationNotFoundError: no deviation with this id exists.
+        TransitionNotAllowedError: ``action`` isn't permitted from the
+            deviation's current status.
+    """
+    try:
+        from app.database import connection
+        with connection(DATABASE_FILE) as conn:
+            conn.isolation_level = None  # manual transaction control
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = conn.execute(
+                    "SELECT review_status FROM deviations WHERE deviation_id = ?",
+                    (deviation_id,),
+                ).fetchone()
+                if row is None:
+                    conn.execute("ROLLBACK")
+                    raise DeviationNotFoundError(deviation_id)
+
+                current_status = row["review_status"]
+                permitted = allowed_transitions.get(current_status, set())
+                if action not in permitted:
+                    conn.execute("ROLLBACK")
+                    raise TransitionNotAllowedError(current_status, sorted(permitted))
+
+                new_status = action_to_status[action]
+                conn.execute(
+                    "UPDATE deviations SET review_status = ? WHERE deviation_id = ?",
+                    (new_status, deviation_id),
+                )
+                conn.execute("COMMIT")
+            except (DeviationNotFoundError, TransitionNotAllowedError):
+                raise
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+        logger.info(f"Deviation {deviation_id} status: {current_status} → {new_status}")
+        return current_status, new_status
+    except sqlite3.DatabaseError as exc:
+        logger.error(f"Failed to transition deviation status: {exc}")
         raise

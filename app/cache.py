@@ -1,6 +1,7 @@
 """Simple in-memory caching with TTL for scored deviations."""
-from datetime import datetime, timedelta
-from typing import Optional, List, Any
+from datetime import datetime, timezone
+from typing import Any, List, Optional
+
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -28,7 +29,7 @@ class CachedScoredDeviations:
         if self._data is None or self._timestamp is None:
             return False
         
-        elapsed = (datetime.now() - self._timestamp).total_seconds()
+        elapsed = (datetime.now(timezone.utc) - self._timestamp).total_seconds()
         is_fresh = elapsed < self.ttl_seconds
         
         if not is_fresh:
@@ -56,7 +57,7 @@ class CachedScoredDeviations:
             data: List of scored deviation records
         """
         self._data = data
-        self._timestamp = datetime.now()
+        self._timestamp = datetime.now(timezone.utc)
         logger.debug(f"Cached {len(data)} scored deviations (TTL: {self.ttl_seconds}s)")
     
     def invalidate(self) -> None:

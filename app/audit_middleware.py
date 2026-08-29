@@ -1,4 +1,12 @@
-"""Audit middleware — logs every mutating HTTP request to the audit_log table.
+"""Audit middleware — generic safety-net logger for mutating HTTP requests.
+
+POST /deviations/{id}/review is intentionally NOT logged here: audit_router
+writes it directly with domain detail (previous_status/new_status, atomic
+transition validation) that this generic middleware can't reconstruct from
+the request alone. This middleware instead exists so any *other* mutating
+endpoint — present (POST /cache/invalidate) or added later without its own
+explicit insert_audit_event call — still leaves a trace rather than
+silently going unaudited.
 
 Complies with 21 CFR Part 11 / ALCOA+ requirements:
 - Immutable, append-only log (no UPDATE/DELETE on audit_log)
@@ -21,11 +29,12 @@ logger = setup_logger(__name__)
 
 MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 # Paths that are NOT subject to audit logging (infrastructure, not data)
-EXCLUDED_PATHS = {"/cache/invalidate", "/docs", "/openapi.json", "/redoc"}
+EXCLUDED_PATHS = {"/docs", "/openapi.json", "/redoc"}
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-    """Starlette middleware that records every mutating request.
+    """Starlette middleware that records mutating requests not already
+    logged with richer detail by their own route handler.
 
     Captures:
     - path, method, HTTP status code
@@ -60,9 +69,10 @@ class AuditMiddleware(BaseHTTPMiddleware):
             except (json.JSONDecodeError, ValueError):
                 body_snapshot = raw_body.decode(errors="replace")[:2000]
 
-        # Fall back to X-Actor header
+        # Fall back to X-Actor header (bounded to match the body 'actor'
+        # field's max_length so an oversized header can't bloat audit_log)
         if not actor:
-            actor = request.headers.get("X-Actor", "unknown")
+            actor = request.headers.get("X-Actor", "unknown")[:100]
 
         response = await call_next(request)
 
