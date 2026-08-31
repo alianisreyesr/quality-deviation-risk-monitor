@@ -88,7 +88,7 @@ def list_capas(
         default=None,
         pattern="^(Open|In Progress|Pending Effectiveness Check|Closed)$",
     ),
-) -> CapaListResponse:
+):
     records = _load_scored_capas()
     if risk_level:
         records = [r for r in records if r["risk_level"] == risk_level]
@@ -104,7 +104,7 @@ def list_capas(
     summary="Get a single scored CAPA record",
 )
 @limiter.limit("100/minute")
-def get_capa(request: Request, capa_id: str) -> CapaResponse:
+def get_capa(request: Request, capa_id: str):
     for record in _load_scored_capas():
         if record["capa_id"] == capa_id:
             return record

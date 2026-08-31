@@ -38,6 +38,8 @@ jobs:
         continue-on-error: true   # advisory only — tighten over time
 
       - name: Run tests with coverage
+        env:
+          PYTHONPATH: .
         run: |
           pytest tests/ \
             --cov=app \
