@@ -14,6 +14,7 @@ CREATE_AUDIT_TABLE = """
 CREATE TABLE IF NOT EXISTS audit_log (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     deviation_id    TEXT,
+    capa_id         TEXT,
     action          TEXT    NOT NULL,
     actor           TEXT    NOT NULL DEFAULT 'unknown',
     comment         TEXT,
@@ -38,6 +39,7 @@ MIGRATABLE_COLUMNS = {
     "new_value": "TEXT",
     "reason": "TEXT",
     "correlation_id": "TEXT",
+    "capa_id": "TEXT",
 }
 
 
@@ -72,6 +74,7 @@ def insert_audit_event(
     actor: str,
     *,
     deviation_id: str | None = None,
+    capa_id: str | None = None,
     comment: str | None = None,
     previous_status: str | None = None,
     new_status: str | None = None,
@@ -102,14 +105,14 @@ def insert_audit_event(
             cursor = conn.execute(
                 """
                 INSERT INTO audit_log (
-                    deviation_id, action, actor, comment,
+                    deviation_id, capa_id, action, actor, comment,
                     previous_status, new_status,
                     previous_value, new_value, reason, correlation_id,
                     ip_address, user_agent, status_code, latency_ms, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    deviation_id, action, actor, comment,
+                    deviation_id, capa_id, action, actor, comment,
                     previous_status, new_status,
                     event_previous_value, event_new_value, event_reason, event_correlation_id,
                     ip_address, user_agent, status_code, latency_ms, created_at,
@@ -128,6 +131,7 @@ def insert_audit_event(
 
 def fetch_audit_log(
     deviation_id: str | None = None,
+    capa_id: str | None = None,
     limit: int = 500,
 ) -> list[dict[str, Any]]:
     """Fetch audit log entries, newest first."""
@@ -138,6 +142,11 @@ def fetch_audit_log(
                 rows = conn.execute(
                     "SELECT * FROM audit_log WHERE deviation_id = ? ORDER BY id DESC LIMIT ?",
                     (deviation_id, limit),
+                ).fetchall()
+            elif capa_id:
+                rows = conn.execute(
+                    "SELECT * FROM audit_log WHERE capa_id = ? ORDER BY id DESC LIMIT ?",
+                    (capa_id, limit),
                 ).fetchall()
             else:
                 rows = conn.execute(
@@ -189,8 +198,51 @@ def update_deviation_status(deviation_id: str, new_status: str) -> str | None:
         raise
 
 
+def fetch_capa_current_status(capa_id: str) -> str | None:
+    """Fetch a CAPA status without modifying it."""
+    try:
+        from app.database import connection
+        with connection(DATABASE_FILE) as conn:
+            row = conn.execute(
+                "SELECT status FROM capas WHERE capa_id = ?",
+                (capa_id,),
+            ).fetchone()
+        return row["status"] if row else None
+    except sqlite3.DatabaseError as exc:
+        logger.error(f"Failed to fetch status for CAPA {capa_id}: {exc}")
+        raise
+
+
+def update_capa_status(capa_id: str, new_status: str) -> str | None:
+    """Update a CAPA's status and return its previous value."""
+    try:
+        from app.database import connection
+        with connection(DATABASE_FILE) as conn:
+            row = conn.execute(
+                "SELECT status FROM capas WHERE capa_id = ?",
+                (capa_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            previous = row["status"]
+            conn.execute(
+                "UPDATE capas SET status = ? WHERE capa_id = ?",
+                (new_status, capa_id),
+            )
+            conn.commit()
+        logger.info(f"CAPA {capa_id} status: {previous} → {new_status}")
+        return previous
+    except sqlite3.DatabaseError as exc:
+        logger.error(f"Failed to update CAPA status: {exc}")
+        raise
+
+
 class DeviationNotFoundError(Exception):
     """Raised when a review transition targets a deviation that doesn't exist."""
+
+
+class CapaNotFoundError(Exception):
+    """Raised when a review transition targets a CAPA that doesn't exist."""
 
 
 class TransitionNotAllowedError(Exception):
@@ -202,6 +254,16 @@ class TransitionNotAllowedError(Exception):
         super().__init__(
             f"transition not allowed from status={current_status!r}; "
             f"allowed actions={allowed_actions}"
+        )
+
+
+class EffectivenessCheckIncompleteError(Exception):
+    """Raised when a CAPA is closed without a completed effectiveness check."""
+
+    def __init__(self, capa_id: str) -> None:
+        self.capa_id = capa_id
+        super().__init__(
+            f"CAPA {capa_id!r} cannot be closed: effectiveness_check_complete is false"
         )
 
 
@@ -264,4 +326,74 @@ def transition_deviation_status(
         return current_status, new_status
     except sqlite3.DatabaseError as exc:
         logger.error(f"Failed to transition deviation status: {exc}")
+        raise
+
+
+def transition_capa_status(
+    capa_id: str,
+    action: str,
+    *,
+    action_to_status: dict[str, str],
+    allowed_transitions: dict[str, set[str]],
+) -> tuple[str, str]:
+    """Atomically validate and apply one CAPA status transition.
+
+    Mirrors ``transition_deviation_status``: ``BEGIN IMMEDIATE`` takes
+    SQLite's write lock before the status is read, closing the same
+    check-then-act race for concurrent requests against the same CAPA.
+
+    A transition into ``Closed`` is additionally hard-gated on
+    ``effectiveness_check_complete`` being true — this is enforced here
+    (not only as a risk-score penalty) so a CAPA cannot be closed out from
+    under an incomplete effectiveness check.
+
+    Returns:
+        (previous_status, new_status) on success.
+
+    Raises:
+        CapaNotFoundError: no CAPA with this id exists.
+        TransitionNotAllowedError: ``action`` isn't permitted from the
+            CAPA's current status.
+        EffectivenessCheckIncompleteError: ``action`` would close the CAPA
+            but its effectiveness check has not been completed.
+    """
+    try:
+        from app.database import connection
+        with connection(DATABASE_FILE) as conn:
+            conn.isolation_level = None  # manual transaction control
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = conn.execute(
+                    "SELECT status, effectiveness_check_complete FROM capas WHERE capa_id = ?",
+                    (capa_id,),
+                ).fetchone()
+                if row is None:
+                    conn.execute("ROLLBACK")
+                    raise CapaNotFoundError(capa_id)
+
+                current_status = row["status"]
+                permitted = allowed_transitions.get(current_status, set())
+                if action not in permitted:
+                    conn.execute("ROLLBACK")
+                    raise TransitionNotAllowedError(current_status, sorted(permitted))
+
+                new_status = action_to_status[action]
+                if new_status == "Closed" and not row["effectiveness_check_complete"]:
+                    conn.execute("ROLLBACK")
+                    raise EffectivenessCheckIncompleteError(capa_id)
+
+                conn.execute(
+                    "UPDATE capas SET status = ? WHERE capa_id = ?",
+                    (new_status, capa_id),
+                )
+                conn.execute("COMMIT")
+            except (CapaNotFoundError, TransitionNotAllowedError, EffectivenessCheckIncompleteError):
+                raise
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+        logger.info(f"CAPA {capa_id} status: {current_status} → {new_status}")
+        return current_status, new_status
+    except sqlite3.DatabaseError as exc:
+        logger.error(f"Failed to transition CAPA status: {exc}")
         raise

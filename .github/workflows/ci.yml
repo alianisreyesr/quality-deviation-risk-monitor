@@ -38,6 +38,8 @@ jobs:
         continue-on-error: true   # advisory only — tighten over time
 
       - name: Run tests with coverage
+        env:
+          PYTHONPATH: .
         run: |
           pytest tests/ \
             --cov=app \
@@ -86,12 +88,12 @@ jobs:
           RESP=$(curl -s http://localhost:8000/health)
           echo "$RESP"
           echo "$RESP" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-assert data.get('status') == 'ok', f'Bad status: {data}'
-assert 'version' in data or 'service' in data, 'Missing identity field'
-print('Health check verified')
-"
+          import sys, json
+          data = json.load(sys.stdin)
+          assert data.get('status') == 'ok', f'Bad status: {data}'
+          assert 'version' in data or 'service' in data, 'Missing identity field'
+          print('Health check verified')
+          "
 
       - name: Swagger UI accessible
         run: curl -f http://localhost:8000/docs > /dev/null
