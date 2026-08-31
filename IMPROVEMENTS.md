@@ -3,7 +3,7 @@
 ## Overview
 This document tracks enhancements to the Quality Deviation Risk Monitor, focusing on reliability, performance, security, observability, and maintainability.
 
-**Current status:** 57 tests across 8 modules · CI on every push · Rate limiting · Caching · Audit middleware · Structured logging
+**Current status:** 174 tests across 15 modules · CI on every push · CAPA risk/aging module · Quality metrics endpoint · Rate limiting · Caching · Audit middleware · Structured logging
 
 ---
 

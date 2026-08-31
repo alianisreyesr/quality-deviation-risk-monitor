@@ -10,7 +10,13 @@ from pathlib import Path
 
 import aiosqlite
 
-from app.config import DATA_FILE, DATABASE_FILE, SCHEMA_FILE
+from app.config import (
+    CAPA_DATA_FILE,
+    DATA_FILE,
+    DATABASE_FILE,
+    SCHEMA_FILE,
+    TRANSFORMATIONS_FILE,
+)
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -69,10 +75,17 @@ def initialize_database(database_file: Path = DATABASE_FILE) -> None:
 
         with connection(database_file) as conn:
             conn.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
+
+            if TRANSFORMATIONS_FILE.exists():
+                conn.executescript(TRANSFORMATIONS_FILE.read_text(encoding="utf-8"))
+                conn.commit()
+                logger.debug("Fact-table transformations applied")
+
             existing = conn.execute("SELECT COUNT(*) FROM deviations").fetchone()[0]
 
             if existing:
                 logger.info(f"Database already contains {existing} records")
+                _seed_capas(conn)
                 return
 
             logger.info("Seeding database from CSV...")
@@ -103,6 +116,8 @@ def initialize_database(database_file: Path = DATABASE_FILE) -> None:
             conn.commit()
             logger.info(f"Successfully seeded {len(rows)} records into database")
 
+            _seed_capas(conn)
+
     except FileNotFoundError as e:
         logger.error(f"Required file not found: {e}")
         raise
@@ -112,6 +127,48 @@ def initialize_database(database_file: Path = DATABASE_FILE) -> None:
     except Exception as e:
         logger.error(f"Unexpected error during database initialization: {e}")
         raise
+
+
+def _seed_capas(conn: sqlite3.Connection) -> None:
+    """Seed the capas table from CAPA_DATA_FILE, if present and empty.
+
+    Best-effort: a missing capas.csv only logs a warning rather than failing
+    startup, since CAPA is an additive feature layered on top of deviations.
+    """
+    if not CAPA_DATA_FILE.exists():
+        logger.warning(f"CAPA data file not found at {CAPA_DATA_FILE} — skipping CAPA seed")
+        return
+
+    existing = conn.execute("SELECT COUNT(*) FROM capas").fetchone()[0]
+    if existing:
+        logger.info(f"capas table already contains {existing} records")
+        return
+
+    logger.info("Seeding capas table from CSV...")
+    with CAPA_DATA_FILE.open(newline="", encoding="utf-8") as source:
+        rows = list(csv.DictReader(source))
+
+    if not rows:
+        logger.warning("CAPA CSV file is empty")
+        return
+
+    conn.executemany(
+        """
+        INSERT INTO capas (
+            capa_id, deviation_id, title, capa_type, severity, root_cause,
+            opened_date, due_date, closure_date, owner,
+            recurrence_flag, effectiveness_check_complete, status
+        ) VALUES (
+            :capa_id, NULLIF(:deviation_id, ''), :title, :capa_type, :severity,
+            NULLIF(:root_cause, ''), :opened_date, :due_date,
+            NULLIF(:closure_date, ''), NULLIF(:owner, ''),
+            :recurrence_flag, :effectiveness_check_complete, :status
+        )
+        """,
+        rows,
+    )
+    conn.commit()
+    logger.info(f"Successfully seeded {len(rows)} CAPA records into database")
 
 
 def reset_database(database_file: Path = DATABASE_FILE) -> None:
@@ -138,6 +195,26 @@ def fetch_deviations(database_file: Path = DATABASE_FILE) -> list[dict[str, obje
         raise
     except Exception as e:
         logger.error(f"Unexpected error fetching deviations: {e}")
+        raise
+
+
+def fetch_capas(database_file: Path = DATABASE_FILE) -> list[dict[str, object]]:
+    """Fetch all CAPA records (synchronous)."""
+    try:
+        with connection(database_file) as conn:
+            rows = [
+                dict(row)
+                for row in conn.execute(
+                    "SELECT * FROM capas ORDER BY due_date, capa_id"
+                )
+            ]
+        logger.debug(f"Retrieved {len(rows)} CAPA records from database")
+        return rows
+    except sqlite3.DatabaseError as e:
+        logger.error(f"Failed to fetch CAPA records: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error fetching CAPA records: {e}")
         raise
 
 

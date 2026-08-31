@@ -135,10 +135,105 @@
   unassigned deviations and are a valid data quality signal (not a data error).
 - All categorical fields are validated against their allowed-value sets by
   `GET /data-quality` and by Pydantic models at the API boundary.
+- `deviation_id` must be unique — `GET /data-quality` flags every record
+  sharing a duplicated ID, not just the extras.
 
 ---
 
-> Last updated: 2026-08-13  
+## Field Reference — Synthetic CAPA Dataset (`capas`)
+
+> Same scope note as above: every CAPA record is entirely synthetic.
+
+### `capa_id`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | String |
+| Required | Yes |
+| Notes | Primary key. Unique per record — duplicates are flagged by `GET /capas/data-quality`. |
+
+### `deviation_id`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | String (nullable) |
+| Required | No |
+| Notes | Links a CAPA back to the deviation that triggered it. Null means the CAPA was raised independently (e.g. from a trend review), not from a single deviation. |
+
+### `capa_type`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | Categorical string |
+| Required | Yes |
+| Allowed values | `Corrective`, `Preventive` |
+
+### `severity`
+
+Same allowed values and scoring role as the deviation `severity` field
+(`Low` / `Medium` / `High`).
+
+### `root_cause`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | String (nullable) |
+| Required | No |
+| Notes | Free-text root-cause category (e.g. `Training Gap`, `Equipment Failure`). Null/empty adds +1 to the CAPA risk score (incomplete investigation) and is bucketed as `Unspecified` in `GET /metrics` and `fact_capa_lifecycle`. |
+
+### `opened_date` / `due_date` / `closure_date`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | Date (ISO 8601) |
+| Required | `opened_date` and `due_date` yes; `closure_date` no |
+| Notes | `closure_date` is set only once a CAPA reaches `Closed` status. `aging_days` freezes at `closure_date − opened_date` once closed; while open it is `today − opened_date`. |
+
+### `owner`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | String (nullable) |
+| Required | No |
+| Notes | Null while open adds +2 to the risk score (unassigned CAPA). Not penalized once closed. |
+
+### `recurrence_flag`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | Boolean |
+| Required | Yes |
+| Notes | `true` means the root cause matches a prior CAPA — a systemic-failure signal. Adds +2 to risk score. |
+
+### `effectiveness_check_complete`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | Boolean |
+| Required | Yes |
+| Notes | A CAPA `Closed` with this still `false` adds +2 to risk score — closing without verifying effectiveness is a data-integrity gap, not just a process nicety. |
+
+### `status`
+
+| Attribute | Value |
+|-----------|-------|
+| Type | Categorical string |
+| Required | Yes |
+| Allowed values | `Open`, `In Progress`, `Pending Effectiveness Check`, `Closed` |
+
+## Derived Fields — CAPA (API-only)
+
+| Field | Type | Description |
+|-------|------|--------------|
+| `aging_days` | Integer ≥ 0 | Days open, or days-to-close once closed. |
+| `risk_score` / `risk_level` / `risk_reasons` | — | Same shape as deviations, produced by `app/capa_scoring.py`. |
+| `scoring_rule_version` | String | Version of the **CAPA** rule set (`CAPA_SCORING_RULE_VERSION`) — independent of the deviation rule version. |
+
+See [risk rules and controls →](risk-rules.md) for the full CAPA rule set.
+
+---
+
+> Last updated: 2026-08-31  
 > Maintained by: portfolio owner  
 > This dictionary must be updated whenever field definitions, allowed values,
 > or scoring rules change.

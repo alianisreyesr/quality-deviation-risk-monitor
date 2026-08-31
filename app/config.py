@@ -9,8 +9,10 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT_DIR / "data" / "deviations.csv"
+CAPA_DATA_FILE = ROOT_DIR / "data" / "capas.csv"
 DATABASE_FILE = ROOT_DIR / "data" / "quality_monitor.db"
 SCHEMA_FILE = ROOT_DIR / "sql" / "schema.sql"
+TRANSFORMATIONS_FILE = ROOT_DIR / "sql" / "transformations.sql"
 
 # ---------------------------------------------------------------------------
 # CORS

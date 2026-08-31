@@ -6,7 +6,6 @@ Covers:
 - AuditMiddleware               (verifies mutating requests are logged)
 - Input validation              (missing actor, invalid action, bad deviation_id)
 """
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

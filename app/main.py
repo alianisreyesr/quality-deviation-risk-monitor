@@ -17,14 +17,16 @@ from app.audit_db import initialize_audit_table
 from app.audit_middleware import AuditMiddleware
 from app.audit_router import router as audit_router
 from app.cache import get_cached_scored, invalidate_cache
+from app.capa_router import router as capa_router
 from app.config import CORS_ORIGINS
 from app.data_quality_router import router as data_quality_router
 from app.database import fetch_deviations, initialize_database
 from app.logger import setup_logger
+from app.metrics_router import router as metrics_router
 from app.models import DeviationListResponse, DeviationResponse, SummaryResponse
 from app.scoring import score_deviation
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.4.0"
 logger = setup_logger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
@@ -55,6 +57,8 @@ app.add_middleware(
 )
 app.include_router(audit_router)
 app.include_router(data_quality_router)
+app.include_router(capa_router)
+app.include_router(metrics_router)
 
 
 def _load_scored() -> list[dict]:

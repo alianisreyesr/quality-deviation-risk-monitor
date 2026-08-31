@@ -1,0 +1,11 @@
+# Ruff configuration.
+#
+# Explicitly pins the linter's rule selection instead of relying on ruff's
+# implicit default, which has changed across versions. requirements-dev.txt
+# only floors the ruff version (ruff>=0.5), so without this file, CI's
+# `ruff check app/ tests/` step silently picks up whatever rule set the
+# resolved ruff version defaults to — and can start failing on pre-existing
+# code with no change to this repository at all. Pinning `select` here keeps
+# CI deterministic across ruff upgrades.
+[lint]
+select = ["E4", "E7", "E9", "F"]

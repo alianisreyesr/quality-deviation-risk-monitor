@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from app.database import fetch_deviations
+from app.database import fetch_capas, fetch_deviations
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -24,6 +24,13 @@ ALLOWED_REVIEW_STATUS = {
     "Open",
     "Under Review",
     "Investigation In Progress",
+    "Closed",
+}
+ALLOWED_CAPA_TYPE = {"Corrective", "Preventive"}
+ALLOWED_CAPA_STATUS = {
+    "Open",
+    "In Progress",
+    "Pending Effectiveness Check",
     "Closed",
 }
 BOOLEAN_VALUES = {"true", "false", "1", "0", "yes", "no", True, False}
@@ -80,13 +87,7 @@ def _check_field(
     invalid = False
     display = str(value)[:80]
 
-    if allowed_values and str(value) not in allowed_values:
-        invalid = True
-    elif is_date and not _is_valid_date(value):
-        invalid = True
-    elif is_bool and not _is_valid_bool(value):
-        invalid = True
-    elif max_length and len(str(value)) > max_length:
+    if allowed_values and str(value) not in allowed_values or is_date and not _is_valid_date(value) or is_bool and not _is_valid_bool(value) or max_length and len(str(value)) > max_length:
         invalid = True
 
     return False, invalid, display if invalid else ""
@@ -105,26 +106,61 @@ FIELD_SPECS: list[tuple[str, dict]] = [
     ("review_status",      {"required": True,  "allowed_values": ALLOWED_REVIEW_STATUS}),
 ]
 
+# CAPA field spec — mirrors FIELD_SPECS. closure_date is intentionally
+# nullable (only set once a CAPA closes); root_cause is nullable at the
+# field-validation layer but its absence is still scored as a risk signal
+# in app/capa_scoring.py.
+CAPA_FIELD_SPECS: list[tuple[str, dict]] = [
+    ("capa_id",                      {"required": True,  "max_length": 50}),
+    ("title",                        {"required": True,  "max_length": 255}),
+    ("capa_type",                    {"required": True,  "allowed_values": ALLOWED_CAPA_TYPE}),
+    ("severity",                     {"required": True,  "allowed_values": ALLOWED_SEVERITY}),
+    ("opened_date",                  {"required": True,  "is_date": True}),
+    ("due_date",                     {"required": True,  "is_date": True}),
+    ("closure_date",                 {"required": False, "is_date": True}),
+    ("owner",                        {"required": False}),   # nullable — unassigned is valid
+    ("root_cause",                   {"required": False}),   # nullable — flagged separately in scoring
+    ("recurrence_flag",              {"required": True,  "is_bool": True}),
+    ("effectiveness_check_complete", {"required": True,  "is_bool": True}),
+    ("status",                       {"required": True,  "allowed_values": ALLOWED_CAPA_STATUS}),
+]
 
-def build_data_quality_report(records: list[dict] | None = None) -> dict:
-    """Build a data quality summary for the full deviation dataset.
 
-    Args:
-        records: Pre-loaded records (optional; loads from DB if None).
+def _find_duplicate_ids(records: list[dict], id_field: str) -> tuple[set[int], list[str]]:
+    """Return (record indices, sample values) for any ID that appears more than once.
 
-    Returns:
-        Dict compatible with DataQualityResponse.
+    Every record sharing a duplicated ID is flagged — not just the extras —
+    because a duplicate primary key makes every copy ambiguous.
     """
-    if records is None:
-        records = fetch_deviations()
+    positions: dict[str, list[int]] = {}
+    for i, record in enumerate(records):
+        value = record.get(id_field)
+        if _is_null(value):
+            continue
+        positions.setdefault(str(value), []).append(i)
 
+    duplicate_indices: set[int] = set()
+    samples: list[str] = []
+    for value, indices in positions.items():
+        if len(indices) > 1:
+            duplicate_indices.update(indices)
+            if len(samples) < 5:
+                samples.append(value)
+    return duplicate_indices, samples
+
+
+def _build_report(records: list[dict], field_specs: list[tuple[str, dict]], id_field: str) -> dict:
+    """Shared field-quality + duplicate-ID pass for any record type.
+
+    Checks unique IDs, required fields, valid dates, and allowed categorical
+    values (severity, status, etc.) per field_specs.
+    """
     total = len(records)
-    logger.info(f"Running data quality analysis on {total} records")
 
     field_reports: list[dict] = []
     records_with_issue: set[int] = set()  # track by index
 
-    for field_name, kwargs in FIELD_SPECS:
+    for field_name, kwargs in field_specs:
         null_indices: list[int] = []
         invalid_indices: list[int] = []
         sample_invalids: list[str] = []
@@ -139,6 +175,18 @@ def build_data_quality_report(records: list[dict] | None = None) -> dict:
                 records_with_issue.add(i)
                 if len(sample_invalids) < 5:
                     sample_invalids.append(display)
+
+        if field_name == id_field:
+            duplicate_indices, duplicate_samples = _find_duplicate_ids(records, id_field)
+            for i in duplicate_indices:
+                if i not in invalid_indices:
+                    invalid_indices.append(i)
+                records_with_issue.add(i)
+            for value in duplicate_samples:
+                if len(sample_invalids) >= 5:
+                    break
+                if value not in sample_invalids:
+                    sample_invalids.append(value)
 
         null_count = len(null_indices)
         invalid_count = len(invalid_indices)
@@ -159,3 +207,39 @@ def build_data_quality_report(records: list[dict] | None = None) -> dict:
         "issue_rate": round(issue_count / total, 4) if total else 0.0,
         "fields": field_reports,
     }
+
+
+def build_data_quality_report(records: list[dict] | None = None) -> dict:
+    """Build a data quality summary for the full deviation dataset.
+
+    Checks unique deviation_id values, required fields, valid dates, and
+    allowed severity/review_status values.
+
+    Args:
+        records: Pre-loaded records (optional; loads from DB if None).
+
+    Returns:
+        Dict compatible with DataQualityResponse.
+    """
+    if records is None:
+        records = fetch_deviations()
+    logger.info(f"Running data quality analysis on {len(records)} deviation records")
+    return _build_report(records, FIELD_SPECS, id_field="deviation_id")
+
+
+def build_capa_data_quality_report(records: list[dict] | None = None) -> dict:
+    """Build a data quality summary for the full CAPA dataset.
+
+    Checks unique capa_id values, required fields, valid dates, and allowed
+    capa_type/severity/status values.
+
+    Args:
+        records: Pre-loaded records (optional; loads from DB if None).
+
+    Returns:
+        Dict compatible with DataQualityResponse.
+    """
+    if records is None:
+        records = fetch_capas()
+    logger.info(f"Running data quality analysis on {len(records)} CAPA records")
+    return _build_report(records, CAPA_FIELD_SPECS, id_field="capa_id")

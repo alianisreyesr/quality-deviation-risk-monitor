@@ -1,0 +1,19 @@
+capa_id,deviation_id,title,capa_type,severity,root_cause,opened_date,due_date,closure_date,owner,recurrence_flag,effectiveness_check_complete,status
+CAPA-2001,DEV-1001,Revise temperature excursion logging SOP,Corrective,High,Procedure Gap,2026-07-05,2026-07-25,,Jordan Lee,True,False,Open
+CAPA-2002,DEV-1004,Retrain equipment log entry on shift handoff,Corrective,High,Training Gap,2026-07-12,2026-07-28,,Morgan Diaz,True,False,In Progress
+CAPA-2003,DEV-1006,Automate access-review exception alerts,Preventive,High,Procedure Gap,2026-07-18,2026-08-01,,,True,False,Open
+CAPA-2004,DEV-1008,Add secondary review for environmental alerts,Corrective,High,Human Error,2026-07-24,2026-08-07,2026-08-05,Riley Chen,False,True,Closed
+CAPA-2005,DEV-1009,Update batch record correction checklist,Corrective,Low,Documentation Error,2026-08-06,2026-08-20,2026-08-18,Casey Rivera,False,True,Closed
+CAPA-2006,DEV-1010,Close audit trail review gaps in QMS training,Corrective,High,Training Gap,2026-07-29,2026-08-12,,,True,False,Open
+CAPA-2007,DEV-1012,Add raw material label barcode verification step,Preventive,High,Equipment Failure,2026-07-14,2026-07-30,,Drew Wilson,True,False,In Progress
+CAPA-2008,DEV-1014,Preventive maintenance scheduling system upgrade,Preventive,High,Equipment Failure,2026-07-21,2026-08-04,,Quinn Lewis,True,False,Open
+CAPA-2009,DEV-1017,Electronic signature review workflow correction,Corrective,High,Procedure Gap,2026-07-26,2026-08-09,2026-08-08,Hayden Brooks,False,True,Closed
+CAPA-2010,DEV-1019,Cleaning verification recurrence root-cause investigation,Corrective,High,Equipment Failure,2026-07-31,2026-08-14,,Logan Price,True,False,In Progress
+CAPA-2011,DEV-1021,Automate data backup evidence capture,Preventive,High,Procedure Gap,2026-07-19,2026-08-02,,,False,False,Open
+CAPA-2012,DEV-1023,Link investigation records to CAPA at intake,Corrective,High,Procedure Gap,2026-07-27,2026-08-10,,Cameron Flores,True,False,Open
+CAPA-2013,DEV-1025,User access recertification cadence review,Corrective,Medium,Human Error,2026-08-02,2026-08-16,,,True,False,Pending Effectiveness Check
+CAPA-2014,DEV-1027,Utility monitoring alarm threshold recalibration,Corrective,High,Equipment Failure,2026-07-15,2026-07-29,,Finley Adams,True,False,Open
+CAPA-2015,DEV-1029,Stability chamber alarm follow-up procedure update,Corrective,High,Equipment Failure,2026-07-17,2026-07-31,2026-07-30,Charlie Reed,False,True,Closed
+CAPA-2016,,Quarterly supplier qualification trend review,Preventive,Medium,Supplier Issue,2026-08-01,2026-09-01,,Sam Patel,False,False,Open
+CAPA-2017,,Deviation trend review — repeat cleaning events,Preventive,High,Equipment Failure,2026-08-03,2026-08-24,,,True,False,Pending Effectiveness Check
+CAPA-2018,DEV-1002,Training acknowledgement gap remediation,Corrective,Medium,Training Gap,2026-07-09,2026-08-05,,,False,True,In Progress

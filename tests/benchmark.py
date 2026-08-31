@@ -130,7 +130,7 @@ def main():
     start = time.perf_counter()
     client.get("/deviations")
     first_call_time = (time.perf_counter() - start) * 1000
-    print(f"\n📊 Cache Miss Analysis: GET /deviations")
+    print("\n📊 Cache Miss Analysis: GET /deviations")
     print(f"   First call (cache miss):  {first_call_time:7.2f} ms")
     
     # Test 3: /deviations endpoint (cached)
@@ -182,8 +182,8 @@ def main():
     
     print("\nKey Insights:")
     print(f"✅ Cache impact: {first_call_time / sorted_by_speed[0]['avg_ms']:.1f}x speedup with cache")
-    print(f"✅ Health check: Suitable for frequent monitoring")
-    print(f"✅ Rate limiting: Current setup handles high throughput safely")
+    print("✅ Health check: Suitable for frequent monitoring")
+    print("✅ Rate limiting: Current setup handles high throughput safely")
     
     print("\n" + "=" * 60)
 

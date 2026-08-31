@@ -1,6 +1,6 @@
 """Simple in-memory caching with TTL for scored deviations."""
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any
 
 from app.logger import setup_logger
 
@@ -17,8 +17,8 @@ class CachedScoredDeviations:
             ttl_seconds: Time-to-live in seconds (default: 5 minutes)
         """
         self.ttl_seconds = ttl_seconds
-        self._data: Optional[List[dict[str, Any]]] = None
-        self._timestamp: Optional[datetime] = None
+        self._data: list[dict[str, Any]] | None = None
+        self._timestamp: datetime | None = None
     
     def is_valid(self) -> bool:
         """Check if cache is still valid.
@@ -37,7 +37,7 @@ class CachedScoredDeviations:
         
         return is_fresh
     
-    def get(self) -> Optional[List[dict[str, Any]]]:
+    def get(self) -> list[dict[str, Any]] | None:
         """Retrieve cached data if valid.
         
         Returns:
@@ -50,7 +50,7 @@ class CachedScoredDeviations:
         logger.debug("Cache miss or expired")
         return None
     
-    def set(self, data: List[dict[str, Any]]) -> None:
+    def set(self, data: list[dict[str, Any]]) -> None:
         """Store data in cache.
         
         Args:
@@ -67,29 +67,43 @@ class CachedScoredDeviations:
         logger.debug("Cache invalidated")
 
 
-# Global cache instance
+# Global cache instances — deviations and CAPA are cached independently so
+# invalidating/refreshing one never discards the other.
 _cache = CachedScoredDeviations(ttl_seconds=300)
+_capa_cache = CachedScoredDeviations(ttl_seconds=300)
 
 
-def get_cached_scored(loader_func) -> List[dict[str, Any]]:
+def get_cached_scored(loader_func) -> list[dict[str, Any]]:
     """Get cached scored deviations, calling loader if cache miss.
-    
+
     Args:
         loader_func: Function that loads and scores deviations
-        
+
     Returns:
         List of scored deviations
     """
     cached = _cache.get()
     if cached is not None:
         return cached
-    
+
     # Cache miss: load and cache
     data = loader_func()
     _cache.set(data)
     return data
 
 
+def get_cached_scored_capas(loader_func) -> list[dict[str, Any]]:
+    """Get cached scored CAPA records, calling loader if cache miss."""
+    cached = _capa_cache.get()
+    if cached is not None:
+        return cached
+
+    data = loader_func()
+    _capa_cache.set(data)
+    return data
+
+
 def invalidate_cache() -> None:
-    """Manually invalidate the cache (useful for testing or refresh endpoints)."""
+    """Manually invalidate both caches (useful for testing or refresh endpoints)."""
     _cache.invalidate()
+    _capa_cache.invalidate()

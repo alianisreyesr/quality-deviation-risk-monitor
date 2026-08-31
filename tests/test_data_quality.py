@@ -9,11 +9,10 @@ Covers:
 - scoring_rule_version present on deviation and list responses
 - data_quality helper with injected clean and dirty record sets
 """
-import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
 from app.data_quality import build_data_quality_report
+from app.main import app
 from app.scoring import SCORING_RULE_VERSION
 
 client = TestClient(app)
@@ -197,3 +196,42 @@ def test_deviation_detail_includes_scoring_rule_version():
     first_id = r.json()["records"][0]["deviation_id"]
     detail = client.get(f"/deviations/{first_id}").json()
     assert detail["scoring_rule_version"] == SCORING_RULE_VERSION
+
+
+# ---------------------------------------------------------------------------
+# Unique-ID detection (duplicate deviation_id)
+# ---------------------------------------------------------------------------
+
+def _clean_deviation(**overrides) -> dict:
+    record = {
+        "deviation_id": "DEV-TEST-DUP",
+        "title": "Test deviation",
+        "severity": "Low",
+        "opened_date": "2026-01-01",
+        "due_date": "2026-06-01",
+        "investigation_owner": "tester",
+        "repeat_occurrence": "false",
+        "record_complete": "true",
+        "review_status": "Open",
+    }
+    record.update(overrides)
+    return record
+
+
+def test_duplicate_deviation_id_flags_both_records():
+    dup_a = _clean_deviation()
+    dup_b = _clean_deviation(title="A different title, same ID")
+    report = build_data_quality_report(records=[dup_a, dup_b])
+    id_field = next(f for f in report["fields"] if f["field_name"] == "deviation_id")
+    assert id_field["invalid_count"] == 2
+    assert "DEV-TEST-DUP" in id_field["sample_invalid_values"]
+    assert report["records_with_any_issue"] == 2
+
+
+def test_unique_deviation_ids_no_issue():
+    a = _clean_deviation(deviation_id="DEV-TEST-01")
+    b = _clean_deviation(deviation_id="DEV-TEST-02")
+    report = build_data_quality_report(records=[a, b])
+    id_field = next(f for f in report["fields"] if f["field_name"] == "deviation_id")
+    assert id_field["invalid_count"] == 0
+    assert report["records_with_any_issue"] == 0
