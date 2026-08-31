@@ -15,22 +15,21 @@ runs stay fast. Start it explicitly when you want the dashboard:
 docker compose --profile dashboard up --build
 ```
 
-Metabase's official Docker image does not ship a SQLite driver (SQLite isn't
-one of its supported production databases). For a **local, read-only,
-single-user dashboard over a portfolio-scale SQLite file**, the community
-[`metabase_sqlite_driver`](https://github.com/AlexR2D2/metabase_sqlite_driver)
-plugin works well. One-time setup before the first `docker compose up`:
+SQLite is not one of Metabase's officially-supported production databases
+(it isn't available on Metabase Cloud), but the self-hosted OSS Docker image
+ships a SQLite driver **built in** — no third-party plugin jar is required
+for this local, read-only, single-user dashboard over a portfolio-scale
+SQLite file.
 
-```bash
-mkdir -p metabase-plugins
-curl -L -o metabase-plugins/sqlite.metabase-driver.jar \
-  https://github.com/AlexR2D2/metabase_sqlite_driver/releases/download/0.2.15/sqlite.metabase-driver.jar
-```
-
-`metabase-plugins/` is bind-mounted into the container at `/plugins` and is
-already covered by `.gitignore` — driver binaries aren't checked into the
-repo. If a newer Metabase image tag or driver release is out, pin both
-together and update the version in `docker-compose.yml`.
+> **Correction (verified 2026-08-31):** earlier revisions of this doc pointed
+> at a community driver, `AlexR2D2/metabase_sqlite_driver`, downloaded via
+> `curl` into a bind-mounted `metabase-plugins/` directory. That repository
+> and release no longer exist (the download URL now 404s), and it turns out
+> to be unnecessary: `modules/drivers/sqlite` ships in the `metabase/metabase`
+> image itself, so `Admin settings → Databases → Add database → SQLite` works
+> with no extra setup. The `metabase-plugins/` bind mount in
+> `docker-compose.yml` is harmless (Metabase loads any *additional* plugin
+> jars placed there) but is no longer required — leave it empty or drop it.
 
 ## First-time setup
 
@@ -85,3 +84,31 @@ prototype's scale.
 - The Metabase admin account created in step 2 is local-only and gated
   behind the `dashboard` Compose profile — it is never part of the default
   `docker compose up` or CI.
+
+## Verification status (2026-08-31)
+
+The environment this doc was last revised in has no Docker daemon
+available, so the following was verified **without** running the
+containers:
+
+- `docker compose config` and `docker compose --profile dashboard config`
+  both parse and resolve cleanly (no schema errors, `metabase` service only
+  appears under the `dashboard` profile as intended).
+- `metabase/metabase:v0.50.8` exists on Docker Hub (`HEAD` on the tags API
+  returns `200`).
+- The previously-documented `AlexR2D2/metabase_sqlite_driver` release URL
+  returns `404` — the repository no longer exists — and was removed above
+  in favor of the driver Metabase ships built in.
+
+- All eight "Starter questions" SQL statements above were executed directly
+  against a freshly-seeded copy of `sql/schema.sql` +
+  `sql/transformations.sql` via `sqlite3` (Python's stdlib driver, not
+  Metabase) and each returned rows with no SQL errors.
+
+**Not verified end-to-end in this pass:** actually bringing up
+`docker compose --profile dashboard up --build`, adding
+`/data/quality_monitor.db` as a SQLite database through the Metabase admin
+UI, and running the starter questions as Metabase Questions against a live
+instance — i.e. Metabase's own SQLite driver and query engine were not
+exercised. Verify that with a Docker daemon available before relying on this
+doc as fully runtime-tested.
