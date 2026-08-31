@@ -10,7 +10,6 @@ Covers:
 - Comment stored and returned
 - Audit event created on every successful transition
 """
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

@@ -7,7 +7,6 @@ Covers:
 - _extract_deviation_id path-parsing helper
 - X-Actor header fallback
 """
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

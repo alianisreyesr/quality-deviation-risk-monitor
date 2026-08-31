@@ -12,9 +12,37 @@ and uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+#### CAPA (Corrective and Preventive Action) module
+- `capas` table (`sql/schema.sql`) with constraints on `capa_type`, `severity`, and `status`; optional link back to `deviations`
+- `app/capa_scoring.py` — independently versioned, explainable risk scoring for CAPA (`CAPA_SCORING_RULE_VERSION = "1.0.0"`), including aging tiers (30/60 days) and an aging_days field that freezes at closure instead of continuing to grow
+- `GET /capas` and `GET /capas/{capa_id}` — scored CAPA records, filterable by `risk_level` and `status`
+- `data/capas.csv` — synthetic seed data, several linked to existing deviations
+
+#### Data quality — CAPA
+- `GET /capas/data-quality` — unique-ID, required-field, valid-date, and allowed-value checks for CAPA, mirroring `GET /data-quality`
+- Duplicate-ID detection added to `app/data_quality.py` for **both** datasets — every record sharing a duplicated ID is now flagged, not just the extras
+
+#### Quality metrics
+- `GET /metrics` (`app/metrics.py`) — aging (deviations + CAPA), recurrence rate, severity distribution, CAPA closure rate, effectiveness-check rate, average time-to-close, and root-cause breakdown, computed live
+
+#### SQL transformations
+- `sql/transformations.sql` — `fact_deviation_events` and `fact_capa_lifecycle` analytics views, applied automatically on every startup; back both `GET /metrics` and the optional Metabase dashboard
+
+#### Dashboard
+- Optional `metabase` service in `docker-compose.yml` (behind the `dashboard` Compose profile, so it never affects the default `docker compose up` or CI's docker smoke test)
+- `docs/dashboard.md` — SQLite driver setup and starter Metabase questions over the fact views
+
+#### Documentation
+- `docs/demo-walkthrough.md` — scripted local walkthrough of every endpoint
+- `docs/data-dictionary.md`, `docs/risk-rules.md`, `docs/architecture.md`, and `README.md` updated for the CAPA data model, scoring rules, and metrics
+- `ruff.toml` — pins the linter's rule selection so CI stays deterministic across ruff version upgrades
+
 ### Planned
 - Async database driver (`aiosqlite`) for concurrent request handling
 - CORS whitelist configuration for deployment hardening
+- CAPA review/closure workflow with its own audit trail (mirrors `app/audit_router.py`)
 
 ---
 

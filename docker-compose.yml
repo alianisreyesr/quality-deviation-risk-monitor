@@ -3,3 +3,31 @@ services:
     build: .
     ports:
       - "8000:8000"
+    volumes:
+      # Named volume so the SQLite database (seeded on first boot from
+      # data/*.csv) persists across restarts and is readable by the
+      # metabase service below — see docs/dashboard.md.
+      - quality-data:/app/data
+
+  # Optional: initial BI dashboard over the same SQLite database the API
+  # uses. Not required to run the API — start it with:
+  #   docker compose --profile dashboard up --build
+  # See docs/dashboard.md for the one-time SQLite driver setup and the
+  # starter questions/dashboard to build once Metabase is up.
+  metabase:
+    image: metabase/metabase:v0.50.8
+    profiles: ["dashboard"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - quality-data:/data:ro
+      - ./metabase-plugins:/plugins
+      - metabase-app-db:/metabase-data
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+    depends_on:
+      - api
+
+volumes:
+  quality-data:
+  metabase-app-db:

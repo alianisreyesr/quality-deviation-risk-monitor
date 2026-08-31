@@ -1,5 +1,4 @@
 """Unit tests for the explainable risk-scoring rules."""
-import pytest
 from app.scoring import score_deviation
 
 
