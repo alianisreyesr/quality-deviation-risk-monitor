@@ -6,7 +6,7 @@ pytest>=9.1.1
 pytest-asyncio>=1.4.0
 httpx>=0.27          # async test client for FastAPI
 pytest-cov>=7.1.0      # coverage reporting
-coverage[toml]>=7.5
+coverage[toml]>=7.16.0
 
 # Linting
 ruff>=0.16.5
