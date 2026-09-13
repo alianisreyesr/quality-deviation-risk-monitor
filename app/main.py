@@ -23,6 +23,7 @@ from app.data_quality_router import router as data_quality_router
 from app.database import fetch_deviations, initialize_database
 from app.logger import setup_logger
 from app.metrics_router import router as metrics_router
+from app.observability import RequestMetricsMiddleware, router as observability_router
 from app.models import DeviationListResponse, DeviationResponse, SummaryResponse
 from app.scoring import score_deviation
 
@@ -48,6 +49,7 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(AuditMiddleware)
+app.add_middleware(RequestMetricsMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -59,6 +61,7 @@ app.include_router(audit_router)
 app.include_router(data_quality_router)
 app.include_router(capa_router)
 app.include_router(metrics_router)
+app.include_router(observability_router)
 
 
 def _load_scored() -> list[dict]:
