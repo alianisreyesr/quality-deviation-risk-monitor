@@ -10,7 +10,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-audit%20trail-003B57?style=flat&logo=sqlite&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=flat&logo=pydantic&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=flat&logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-174%20passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/tests-200%20passing-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
 **GxP · CSV · 21 CFR Part 11 · ALCOA+ · Data Integrity · Audit Trail · CAPA**
@@ -62,8 +62,9 @@ In GxP manufacturing, unreviewed deviations and stalled corrective/preventive ac
 | **Explainable Risk Scoring** | Independently versioned, rule-based scorers for deviations **and CAPA**; every response returns `risk_reasons[]` so reviewers can evaluate — not blindly accept — the output |
 | **Data Quality Engineering** | Unique-ID, required-field, valid-date, and allowed-value checks for both datasets (`GET /data-quality`, `GET /capas/data-quality`) |
 | **Quality Metrics** | `GET /metrics` — aging, recurrence, severity distribution, CAPA closure rate, and root-cause breakdown, computed live |
+| **Operational Telemetry** | `GET /internal/metrics` — Prometheus-compatible request totals, status codes, route labels, and cumulative latency |
 | **API Engineering** | FastAPI + Pydantic v2 with rate limiting (SlowAPI), structured error handling, and OpenAPI docs auto-generated |
-| **Testing & CI** | 174 tests across 15 modules (unit + integration); GitHub Actions runs the full suite on every push |
+| **Testing & CI** | 200 tests across 17 modules (unit + integration); GitHub Actions runs the full suite on every push |
 | **Containerization** | Dockerfile + docker-compose for reproducible, environment-agnostic deployment; optional Metabase dashboard profile |
 | **Documentation** | Architecture, data model, risk rules, metrics, **regulatory references (FDA / MHRA / PIC/S / EU)**, controls, known limitations, and CHANGELOG |
 
@@ -274,7 +275,7 @@ flowchart TB
 
 ## Test Suite
 
-174 tests · 15 modules · runs on every push via GitHub Actions CI
+200 tests · 17 modules · runs on every push via GitHub Actions CI
 
 ```bash
 pytest -q
