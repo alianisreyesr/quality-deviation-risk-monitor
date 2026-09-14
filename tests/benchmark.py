@@ -6,6 +6,7 @@ Run with: PYTHONPATH=/workspaces/quality-deviation-risk-monitor python tests/ben
 
 import time
 import statistics
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List
 from fastapi.testclient import TestClient
 from app.main import app
@@ -53,6 +54,7 @@ def benchmark_endpoint(
     avg_time = statistics.mean(times)
     median_time = statistics.median(times)
     std_dev = statistics.stdev(times) if len(times) > 1 else 0
+    p95_time = sorted(times)[max(0, int(len(times) * 0.95) - 1)]
     
     # Print results
     print(f"   ├─ Min:     {min_time:7.2f} ms")
@@ -60,6 +62,7 @@ def benchmark_endpoint(
     print(f"   ├─ Avg:     {avg_time:7.2f} ms")
     print(f"   ├─ Median:  {median_time:7.2f} ms")
     print(f"   ├─ StdDev:  {std_dev:7.2f} ms")
+    print(f"   ├─ P95:     {p95_time:7.2f} ms")
     print(f"   └─ Throughput: {1000 / avg_time:7.1f} req/sec")
     
     return {
@@ -69,12 +72,13 @@ def benchmark_endpoint(
         "avg_ms": avg_time,
         "median_ms": median_time,
         "stddev_ms": std_dev,
+        "p95_ms": p95_time,
         "throughput_rps": 1000 / avg_time
     }
 
 
 def benchmark_concurrent_requests(endpoint: str, concurrent: int = 50) -> dict:
-    """Simulate concurrent requests (simple sequential simulation).
+    """Issue requests concurrently and report latency and success evidence.
     
     Args:
         endpoint: API endpoint to test
@@ -84,27 +88,37 @@ def benchmark_concurrent_requests(endpoint: str, concurrent: int = 50) -> dict:
         dict with timing statistics
     """
     print(f"\n📊 Concurrent Requests Benchmark: {endpoint}")
-    print(f"   Simulating {concurrent} sequential requests")
+    print(f"   Issuing {concurrent} requests concurrently")
+
+    def request_once() -> tuple[int, float]:
+        started = time.perf_counter()
+        response = client.get(endpoint)
+        return response.status_code, (time.perf_counter() - started) * 1000
     
     start = time.perf_counter()
-    for _ in range(concurrent):
-        if endpoint == "/deviations":
-            client.get("/deviations")
-        elif endpoint == "/summary":
-            client.get("/summary")
+    with ThreadPoolExecutor(max_workers=concurrent) as pool:
+        futures = [pool.submit(request_once) for _ in range(concurrent)]
+        outcomes = [future.result() for future in as_completed(futures)]
     total_elapsed = (time.perf_counter() - start) * 1000
-    
-    avg_per_req = total_elapsed / concurrent
+    latencies = [latency for _, latency in outcomes]
+    successes = sum(status == 200 for status, _ in outcomes)
+    avg_per_req = statistics.mean(latencies)
+    p95_ms = sorted(latencies)[max(0, int(len(latencies) * 0.95) - 1)]
     throughput = (concurrent * 1000) / total_elapsed
     
     print(f"   ├─ Total Time:      {total_elapsed:7.2f} ms")
     print(f"   ├─ Avg per Request: {avg_per_req:7.2f} ms")
+    print(f"   ├─ P95 latency:     {p95_ms:7.2f} ms")
+    print(f"   ├─ Successes:       {successes}/{concurrent}")
     print(f"   └─ Throughput:      {throughput:7.1f} req/sec")
     
     return {
         "endpoint": endpoint,
         "total_time_ms": total_elapsed,
         "avg_per_request_ms": avg_per_req,
+        "p95_ms": p95_ms,
+        "successful_requests": successes,
+        "failed_requests": concurrent - successes,
         "throughput_rps": throughput
     }
 
