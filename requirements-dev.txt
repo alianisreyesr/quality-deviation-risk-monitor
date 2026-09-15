@@ -12,4 +12,4 @@ coverage[toml]>=7.5
 ruff>=0.16.5
 
 # Type checking
-mypy>=1.10
+mypy>=2.3.1
