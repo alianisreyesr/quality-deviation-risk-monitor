@@ -42,7 +42,7 @@ This system is designed to simulate a **computer system in a GxP-regulated envir
 - Any contribution that weakens audit trail immutability will be rejected.
 
 ### Authentication & Authorization
-- The current version uses a simplified actor model for portfolio demonstration purposes.
+- **No endpoint is authenticated.** The `actor` recorded in the audit trail is taken from the request body or the `X-Actor` header and is self-asserted by the client, so it can be spoofed. `POST /cache/invalidate` is also public. The audit trail is therefore NOT a compliant 21 CFR Part 11 attributable record; this is a deliberate simplification for a synthetic-data portfolio demo.
 - A production deployment of a system like this would require:
   - Individual user authentication (e.g., OAuth 2.0 / SAML)
   - Role-based access control (RBAC) with documented access matrix

@@ -240,7 +240,7 @@ Every `POST /deviations/{id}/review` appends one immutable row. `AuditMiddleware
 
 | Field | Description |
 |---|---|
-| `actor` | Required reviewer identifier (`X-Actor` header) — Attributable |
+| `actor` | Required reviewer identifier (`X-Actor` header or request body) — Attributable. **Not authenticated**: the value is self-asserted by the client, so the trail is attributable by convention only (see Security) |
 | `action` | `acknowledge` / `investigate` / `close` / `METHOD /path` |
 | `previous_status` / `new_status` | Before-and-after workflow state |
 | `comment` | Optional rationale or request-body snapshot (max 1,000 chars) |
@@ -275,7 +275,7 @@ flowchart TB
 
 ## Test Suite
 
-202 tests · 18 modules · runs on every push via GitHub Actions CI
+Full pytest suite (see the Tests badge) · runs on every push via GitHub Actions CI
 
 ```bash
 pytest -q
@@ -305,10 +305,10 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) and [docs/REGULATORY_REFERENCES.md](docs/
 | Project | Domain Focus | Status |
 |---|---|---|
 | **[CSV Evidence Tracker](https://github.com/alianisreyesr/csv-evidence-tracker)** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | ✅ Active · 44 tests |
-| **[GxP Change Control](https://github.com/alianisreyesr/gxp-change-control)** | Controlled change lifecycle & approvals | ✅ Active · 68 tests |
+| **[GxP Change Control](https://github.com/alianisreyesr/gxp-change-control)** | Controlled change lifecycle & approvals | ✅ Active · 78 tests |
 | **[Data Integrity Case File](https://github.com/alianisreyesr/data-integrity-case-file)** | ALCOA+ investigation, CAPA readiness, local AI triage | ✅ Active |
 | **[CSA Assurance Planner](https://github.com/alianisreyesr/csa-assurance-planner)** | Risk-based software assurance planning, FDA CSA alignment | ✅ Active |
-| **[GxP Batch Data Pipeline](https://github.com/alianisreyesr/gxp-batch-data-pipeline)** | Batch manufacturing pipeline — DuckDB · dbt · quality gates | ✅ Active · 12 tests |
+| **[GxP Batch Data Pipeline](https://github.com/alianisreyesr/gxp-batch-data-pipeline)** | Batch manufacturing pipeline — DuckDB · dbt · quality gates | ✅ Active · 35 tests |
 
 ---
 

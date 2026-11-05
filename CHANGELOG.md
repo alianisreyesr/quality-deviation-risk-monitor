@@ -114,7 +114,7 @@ Initial public release.
 - `POST /cache/invalidate`
 - Immutable append-only audit trail (21 CFR Part 11 / ALCOA+)
 - Rule-based risk scoring with explainable reasons
-- 57 automated tests, GitHub Actions CI
+- Automated test suite, GitHub Actions CI
 - React reviewer dashboard
 - Docker + docker-compose
 - Full documentation suite

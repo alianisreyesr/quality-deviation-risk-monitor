@@ -81,13 +81,13 @@ def health(request: Request) -> dict[str, str]:
             "version": APP_VERSION,
         }
     except Exception as exc:
-        logger.warning("Health check warning: %s", exc)
+        logger.warning("Health check warning: %s", exc)  # details stay in server logs only
         return {
             "status": "degraded",
             "data_classification": "synthetic portfolio data",
             "decision_support": "human review required",
             "version": APP_VERSION,
-            "error": str(exc),
+            "error": "database check failed",
         }
 
 

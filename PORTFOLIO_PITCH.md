@@ -29,7 +29,7 @@ Full-stack deviation prioritization system with explainable risk scoring and a 2
 - `AuditMiddleware` logs every mutating HTTP request to an append-only `audit_log` table — UTC server-generated timestamps, never client-supplied (ALCOA+ Contemporaneous)
 - `contributing_reasons[]` in every API response — reviewers evaluate, not blindly accept, algorithmic output (GAMP 5 Category 4 defensibility)
 - Rate limiting (SlowAPI), structured error handling, OpenAPI docs auto-generated
-- **112 tests · 10 modules · CI coverage gate ≥70%**
+- **202 tests · CI coverage gate ≥70%**
 
 ---
 
@@ -55,7 +55,7 @@ Controlled change lifecycle: request → impact assessment → approval workflow
 - Multi-stage approval workflow with electronic signature fields (21 CFR Part 11 alignment)
 - Risk classification and impact assessment forms before change approval
 - Bandit (Python SAST) + pip-audit + npm audit + TypeScript typecheck in CI — production-grade security posture
-- **68 tests · CI coverage gate ≥70% · release.yml · sonar.yml**
+- **78 tests · CI coverage gate ≥70% · release.yml · sonar.yml**
 
 ---
 

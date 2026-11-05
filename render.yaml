@@ -5,7 +5,7 @@
 #   1. Push this file to main (already done)
 #   2. Go to https://dashboard.render.com → New → Blueprint
 #   3. Connect your GitHub repo — Render will detect this file automatically
-#   4. Set the ALLOWED_ORIGINS env var to your Vercel frontend URL after deploy
+#   4. Set the CORS_ORIGINS env var to your Vercel frontend URL after deploy
 
 services:
   - type: web
@@ -15,7 +15,7 @@ services:
     plan: free
     branch: main
 
-    buildCommand: pip install -r requirements-prod.txt && python scripts/seed_db.py
+    buildCommand: pip install -r requirements-prod.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
     healthCheckPath: /health
@@ -27,7 +27,7 @@ services:
         value: production
       # Set this after your Vercel deploy — paste your Vercel URL here
       # Example: https://quality-deviation-risk-monitor.vercel.app
-      - key: ALLOWED_ORIGINS
+      - key: CORS_ORIGINS
         value: "https://your-vercel-app.vercel.app"
 
     # Persist the SQLite database across deploys
