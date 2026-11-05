@@ -10,7 +10,6 @@
 ![SQLite](https://img.shields.io/badge/SQLite-audit%20trail-003B57?style=flat&logo=sqlite&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=flat&logo=pydantic&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=flat&logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-202%20passing-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
 **GxP · CSV · 21 CFR Part 11 · ALCOA+ · Data Integrity · Audit Trail · CAPA**
@@ -300,15 +299,19 @@ See [IMPROVEMENTS.md](IMPROVEMENTS.md) and [docs/REGULATORY_REFERENCES.md](docs/
 
 ---
 
-## Regulated Portfolio Ecosystem
+## Portfolio Ecosystem
 
 | Project | Domain Focus | Status |
 |---|---|---|
-| **[CSV Evidence Tracker](https://github.com/alianisreyesr/csv-evidence-tracker)** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | ✅ Active · 44 tests |
-| **[GxP Change Control](https://github.com/alianisreyesr/gxp-change-control)** | Controlled change lifecycle & approvals | ✅ Active · 78 tests |
+| **[CSV Evidence Tracker](https://github.com/alianisreyesr/csv-evidence-tracker)** | Requirements traceability, IQ/OQ/PQ test execution, audit trail | ✅ Active |
+| **[GxP Change Control](https://github.com/alianisreyesr/gxp-change-control)** | Controlled change lifecycle & approvals | ✅ Active |
 | **[Data Integrity Case File](https://github.com/alianisreyesr/data-integrity-case-file)** | ALCOA+ investigation, CAPA readiness, local AI triage | ✅ Active |
 | **[CSA Assurance Planner](https://github.com/alianisreyesr/csa-assurance-planner)** | Risk-based software assurance planning, FDA CSA alignment | ✅ Active |
-| **[GxP Batch Data Pipeline](https://github.com/alianisreyesr/gxp-batch-data-pipeline)** | Batch manufacturing pipeline — DuckDB · dbt · quality gates | ✅ Active · 35 tests |
+| **[GxP Batch Data Pipeline](https://github.com/alianisreyesr/gxp-batch-data-pipeline)** | Batch manufacturing pipeline — DuckDB · dbt · quality gates | ✅ Active |
+| **[AI Security Analyst](https://github.com/alianisreyesr/ai-security-analyst)** | Deterministic log detection, MITRE ATT&CK mapping, bounded AI summaries | ✅ Active |
+| **[Service Operations Command Center](https://github.com/alianisreyesr/service-operations-command-center)** | Incident intake, SLA targets, controlled transitions, audit events | ✅ Active |
+| **[Retail Operations Data Platform](https://github.com/alianisreyesr/retail-operations-data-platform)** | DuckDB analytics pipeline with tested quality gates | ✅ Active |
+| **[AI Document Intelligence Evaluator](https://github.com/alianisreyesr/ai-document-intelligence-evaluator)** | RAG and AI evaluation: citations, recall@k, groundedness | ✅ Active |
 
 ---
 
