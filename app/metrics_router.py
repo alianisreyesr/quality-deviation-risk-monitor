@@ -11,15 +11,13 @@ GxP KPI system.
 """
 
 from fastapi import APIRouter, HTTPException, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.logger import setup_logger
+from app.rate_limit import limiter
 from app.metrics import build_quality_metrics
 from app.models import QualityMetricsResponse
 
 logger = setup_logger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(tags=["Metrics"])
 

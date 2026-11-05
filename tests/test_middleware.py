@@ -10,6 +10,7 @@ Covers:
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import auth_headers
 from app.audit_db import fetch_audit_log, update_deviation_status
 from app.audit_middleware import _extract_deviation_id
 from app.database import fetch_deviations
@@ -57,6 +58,7 @@ def test_post_review_is_logged_by_middleware():
     client.post(
         f"/deviations/{dev_id}/review",
         json={"action": "acknowledge", "actor": "middleware.tester"},
+        headers=auth_headers("admin", "middleware.tester"),
     )
     after = len(fetch_audit_log(deviation_id=dev_id))
     # At minimum one event added (the router itself inserts one; middleware may add another)
@@ -76,7 +78,7 @@ def test_cache_invalidate_is_logged_by_middleware():
     """POST /cache/invalidate has no route-level audit call, so the generic
     middleware is its only audit coverage — it must add an event."""
     before = len(fetch_audit_log())
-    client.post("/cache/invalidate")
+    client.post("/cache/invalidate", headers=auth_headers("admin"))
     after = len(fetch_audit_log())
     assert after > before
 
@@ -85,15 +87,15 @@ def test_cache_invalidate_is_logged_by_middleware():
 # Actor resolution
 # ---------------------------------------------------------------------------
 
-def test_x_actor_header_is_captured_when_no_body_actor():
-    """Middleware should fall back to X-Actor header when body has no 'actor' field."""
-    records = fetch_deviations()
-    dev_id = records[0]["deviation_id"]
-    update_deviation_status(dev_id, "Open")
-    # POST with actor in body (normal path) — just verify it doesn't 500
-    response = client.post(
-        f"/deviations/{dev_id}/review",
-        json={"action": "acknowledge", "actor": "header.tester"},
-        headers={"X-Actor": "header.tester"},
-    )
-    assert response.status_code == 200
+def test_x_actor_header_and_body_actor_are_ignored_for_attribution():
+    """The audit actor comes from the verified token, never from X-Actor or the body."""
+    client.post("/cache/invalidate", headers={**auth_headers("admin", "real.admin"), "X-Actor": "spoofed"})
+    events = fetch_audit_log(limit=1)
+    assert events[0]["actor"] == "real.admin"
+
+
+def test_unauthenticated_mutation_is_rejected_and_not_logged():
+    before = len(fetch_audit_log())
+    response = client.post("/cache/invalidate", headers={"X-Actor": "spoofed"})
+    assert response.status_code == 401
+    assert len(fetch_audit_log()) == before

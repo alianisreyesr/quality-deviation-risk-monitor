@@ -8,7 +8,9 @@ ReviewAction = Literal["acknowledge", "investigate", "close"]
 
 class ReviewActionRequest(BaseModel):
     action: ReviewAction
-    actor: str = Field(min_length=1, max_length=100)
+    # Deprecated: the actor is taken from the bearer token. If supplied it must
+    # equal the authenticated username (kept for backwards compatibility).
+    actor: str | None = Field(default=None, min_length=1, max_length=100)
     comment: str | None = Field(default=None, max_length=1000)
 
 
@@ -45,7 +47,9 @@ CapaReviewAction = Literal["start", "submit_for_effectiveness_check", "close"]
 
 class CapaReviewActionRequest(BaseModel):
     action: CapaReviewAction
-    actor: str = Field(min_length=1, max_length=100)
+    # Deprecated: the actor is taken from the bearer token. If supplied it must
+    # equal the authenticated username (kept for backwards compatibility).
+    actor: str | None = Field(default=None, min_length=1, max_length=100)
     comment: str | None = Field(default=None, max_length=1000)
 
 

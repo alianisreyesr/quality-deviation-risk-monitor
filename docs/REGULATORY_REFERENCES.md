@@ -23,7 +23,7 @@ This document maps major regulations and guidance that shape how **information s
 FDA describes a risk-based approach and enforcement discretion in certain areas while predicate rules (e.g., CGMP) still require trustworthy records.
 
 **How this prototype relates (illustratively only):**  
-Append-only `audit_log`, server-generated UTC timestamps, actor attribution via header, and immutable review actions are **design patterns** that echo Part 11 themes — not a claim of Part 11 validation.
+Append-only `audit_log`, server-generated UTC timestamps, actor attribution from an authenticated JWT subject, and immutable review actions are **design patterns** that echo Part 11 themes — not a claim of Part 11 validation.
 
 ---
 
@@ -43,7 +43,7 @@ Append-only `audit_log`, server-generated UTC timestamps, actor attribution via 
 
 | Attribute | Regulatory idea | Prototype illustration |
 |-----------|-----------------|------------------------|
-| **Attributable** | Who performed the action | `actor` / `X-Actor` on review and middleware events |
+| **Attributable** | Who performed the action | authenticated token subject recorded as `actor` on review and middleware events |
 | **Legible** | Readable, permanent meaning | Structured JSON/API responses + human-readable `contributing_reasons[]` |
 | **Contemporaneous** | Recorded at the time of the activity | Server-side UTC `created_at`, not client-supplied |
 | **Original / true copy** | First capture or verified copy | Append-only log; no update/delete of audit rows |
@@ -168,7 +168,7 @@ These themes appear repeatedly across FDA, MHRA, PIC/S, and EU materials:
 | Theme | In this prototype |
 |-------|-------------------|
 | Audit trail | Append-only SQLite `audit_log` + middleware on mutating requests |
-| Attribution | Required actor on review actions |
+| Attribution | Actor taken from the authenticated token on review actions |
 | Contemporaneous time | Server UTC timestamps |
 | Explainability | Rule-based risk score + `contributing_reasons[]` |
 | Testing culture | Automated tests + CI (engineering discipline that supports future validation evidence) |

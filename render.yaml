@@ -23,8 +23,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
+      # ENVIRONMENT=production makes the API refuse to start without a strong
+      # JWT_SECRET_KEY (app/auth.py). Render generates a stable random value once.
       - key: ENVIRONMENT
         value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
       # Set this after your Vercel deploy — paste your Vercel URL here
       # Example: https://quality-deviation-risk-monitor.vercel.app
       - key: CORS_ORIGINS

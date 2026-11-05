@@ -28,3 +28,21 @@ _raw = os.getenv(
     "http://localhost:5173,http://127.0.0.1:5173",
 )
 CORS_ORIGINS: list[str] = [o.strip() for o in _raw.split(",") if o.strip()]
+
+# ---------------------------------------------------------------------------
+# Runtime identity
+# ---------------------------------------------------------------------------
+APP_VERSION = "1.5.0"
+
+# "development" (default), "test", or a production-like value
+# ("production", "prod", "staging"). Production-like values make the API
+# refuse to start without a strong JWT_SECRET_KEY (see app/auth.py).
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").strip().lower()
+PRODUCTION_ENVIRONMENTS = {"production", "prod", "staging"}
+
+# ---------------------------------------------------------------------------
+# Authentication (JWT)
+# ---------------------------------------------------------------------------
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRES_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "60"))
+JWT_MIN_SECRET_LENGTH = 32

@@ -14,6 +14,19 @@ and uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+#### Authentication and RBAC (1.5.0)
+- JWT bearer authentication (`POST /auth/token`, `GET /auth/me`) with roles `reviewer`, `quality_manager` and `admin` (`app/auth.py`)
+- Review endpoints (`/deviations/{id}/review`, `/capas/{id}/review`) require a token; the audit `actor` is now the verified token subject. Body `actor` is optional and must match the token; `X-Actor` is ignored by the audit middleware
+- `POST /cache/invalidate` is admin-only; read endpoints remain public
+- `ENVIRONMENT` and `JWT_SECRET_KEY` handling: production-like environments fail fast without a 32+ character secret; `render.yaml` generates one
+- Single shared rate limiter (`app/rate_limit.py`); `/deviations`, `/deviations/{id}` and `/summary` now enforce the documented 100/minute
+- `/health` reports `environment`; `APP_VERSION` moved to `app/config.py` (frontend `package.json` aligned to 1.5.0)
+
+#### CI and tooling
+- Removed duplicate `tests.yml`; `ci.yml` now runs ruff, blocking mypy, Bandit, pip-audit, a frontend build with `npm ci`/`npm audit`, and a 85% coverage gate, with `permissions: contents: read`
+- Dev requirements are pinned and separate from runtime (`requirements-prod.txt`); added `PyJWT`, `mypy.ini`, `.env.example`
+
+
 #### CAPA (Corrective and Preventive Action) module
 - `capas` table (`sql/schema.sql`) with constraints on `capa_type`, `severity`, and `status`; optional link back to `deviations`
 - `app/capa_scoring.py` — independently versioned, explainable risk scoring for CAPA (`CAPA_SCORING_RULE_VERSION = "1.0.0"`), including aging tiers (30/60 days) and an aging_days field that freezes at closure instead of continuing to grow

@@ -3,6 +3,12 @@ services:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      # Set ENVIRONMENT=production and a 32+ char JWT_SECRET_KEY (see .env.example)
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-60}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     volumes:
       # Named volume so the SQLite database (seeded on first boot from
       # data/*.csv) persists across restarts and is readable by the

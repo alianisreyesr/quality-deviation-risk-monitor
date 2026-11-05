@@ -19,6 +19,7 @@ from app.audit_db import fetch_audit_log, update_capa_status
 from app.config import DATABASE_FILE
 from app.database import connection, fetch_capas
 from app.main import app
+from tests.conftest import auth_headers
 
 client = TestClient(app)
 
@@ -44,7 +45,9 @@ def _review(capa_id: str, action: str, actor: str = "test.user", comment: str | 
     payload: dict = {"action": action, "actor": actor}
     if comment:
         payload["comment"] = comment
-    return client.post(f"/capas/{capa_id}/review", json=payload)
+    return client.post(
+        f"/capas/{capa_id}/review", json=payload, headers=auth_headers("admin", actor)
+    )
 
 
 def _id_at(index: int) -> str:
@@ -226,15 +229,21 @@ def test_capa_audit_trail_reflects_new_event():
 # Input validation
 # ---------------------------------------------------------------------------
 
-def test_missing_actor_returns_422():
+def test_missing_body_actor_is_accepted_and_uses_token_identity():
     capa_id = _id_at(0)
-    r = client.post(f"/capas/{capa_id}/review", json={"action": "start"})
-    assert r.status_code == 422
+    _force_capa(capa_id, "Open")
+    r = client.post(
+        f"/capas/{capa_id}/review",
+        json={"action": "start"},
+        headers=auth_headers("reviewer", "token.user"),
+    )
+    assert r.status_code == 200
+    assert r.json()["actor"] == "token.user"
 
 
 def test_invalid_action_returns_422():
     capa_id = _id_at(0)
-    r = client.post(f"/capas/{capa_id}/review", json={"action": "approve", "actor": "x"})
+    r = client.post(f"/capas/{capa_id}/review", json={"action": "approve", "actor": "x"}, headers=auth_headers("admin", "x"))
     assert r.status_code == 422
 
 
@@ -242,6 +251,7 @@ def test_review_unknown_capa_returns_404():
     r = client.post(
         "/capas/CAPA-DOES-NOT-EXIST/review",
         json={"action": "start", "actor": "tester"},
+        headers=auth_headers("admin", "tester"),
     )
     assert r.status_code == 404
 

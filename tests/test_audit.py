@@ -9,6 +9,7 @@ Covers:
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import auth_headers
 from app.audit_db import fetch_audit_log, update_deviation_status
 from app.database import fetch_deviations
 
@@ -30,7 +31,9 @@ def _post_review(deviation_id: str, action: str = "acknowledge", actor: str = "t
     payload: dict = {"action": action, "actor": actor}
     if comment:
         payload["comment"] = comment
-    return client.post(f"/deviations/{deviation_id}/review", json=payload)
+    return client.post(
+        f"/deviations/{deviation_id}/review", json=payload, headers=auth_headers("admin", actor)
+    )
 
 
 def _open(deviation_id: str) -> None:
@@ -122,10 +125,16 @@ def test_review_invalid_deviation_returns_404():
     assert response.status_code == 404
 
 
-def test_review_missing_actor_returns_422():
+def test_review_without_body_actor_uses_authenticated_identity():
     dev_id = _first_deviation_id()
-    response = client.post(f"/deviations/{dev_id}/review", json={"action": "acknowledge"})
-    assert response.status_code == 422
+    _open(dev_id)
+    response = client.post(
+        f"/deviations/{dev_id}/review",
+        json={"action": "acknowledge"},
+        headers=auth_headers("reviewer", "token.user"),
+    )
+    assert response.status_code == 200
+    assert response.json()["actor"] == "token.user"
 
 
 def test_review_invalid_action_returns_422():
@@ -133,6 +142,7 @@ def test_review_invalid_action_returns_422():
     response = client.post(
         f"/deviations/{dev_id}/review",
         json={"action": "approve", "actor": "tester"},
+        headers=auth_headers("admin", "tester"),
     )
     assert response.status_code == 422
 
@@ -142,6 +152,7 @@ def test_actor_max_length_validation():
     response = client.post(
         f"/deviations/{dev_id}/review",
         json={"action": "acknowledge", "actor": "x" * 101},  # max_length=100
+        headers=auth_headers("admin", "tester"),
     )
     assert response.status_code == 422
 

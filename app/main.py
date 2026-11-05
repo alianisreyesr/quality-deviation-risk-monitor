@@ -9,27 +9,27 @@ from datetime import date
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from app.audit_db import initialize_audit_table
 from app.audit_middleware import AuditMiddleware
 from app.audit_router import router as audit_router
+from app.auth import AdminUser
+from app.auth_router import router as auth_router
 from app.cache import get_cached_scored, invalidate_cache
 from app.capa_router import router as capa_router
-from app.config import CORS_ORIGINS
+from app.config import APP_VERSION, CORS_ORIGINS, ENVIRONMENT
 from app.data_quality_router import router as data_quality_router
 from app.database import fetch_deviations, initialize_database
 from app.logger import setup_logger
 from app.metrics_router import router as metrics_router
 from app.observability import RequestMetricsMiddleware, router as observability_router
 from app.models import DeviationListResponse, DeviationResponse, SummaryResponse
+from app.rate_limit import ADMIN_LIMIT, READ_LIMIT, limiter
 from app.scoring import score_deviation
 
-APP_VERSION = "1.4.0"
 logger = setup_logger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -47,7 +47,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 app.add_middleware(AuditMiddleware)
 app.add_middleware(RequestMetricsMiddleware)
 app.add_middleware(
@@ -57,6 +57,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router)
 app.include_router(audit_router)
 app.include_router(data_quality_router)
 app.include_router(capa_router)
@@ -79,6 +80,7 @@ def health(request: Request) -> dict[str, str]:
             "data_classification": "synthetic portfolio data",
             "decision_support": "human review required",
             "version": APP_VERSION,
+            "environment": ENVIRONMENT,
         }
     except Exception as exc:
         logger.warning("Health check warning: %s", exc)  # details stay in server logs only
@@ -87,12 +89,15 @@ def health(request: Request) -> dict[str, str]:
             "data_classification": "synthetic portfolio data",
             "decision_support": "human review required",
             "version": APP_VERSION,
+            "environment": ENVIRONMENT,
             "error": "database check failed",
         }
 
 
 @app.get("/deviations", response_model=DeviationListResponse)
+@limiter.limit(READ_LIMIT)
 def list_deviations(
+    request: Request,
     risk_level: str | None = Query(default=None, pattern="^(Low|Medium|High)$"),
 ):
     records = _load_scored()
@@ -102,7 +107,8 @@ def list_deviations(
 
 
 @app.get("/deviations/{deviation_id}", response_model=DeviationResponse)
-def get_deviation(deviation_id: str):
+@limiter.limit(READ_LIMIT)
+def get_deviation(request: Request, deviation_id: str):
     for record in _load_scored():
         if record["deviation_id"] == deviation_id:
             return record
@@ -110,7 +116,8 @@ def get_deviation(deviation_id: str):
 
 
 @app.get("/summary", response_model=SummaryResponse)
-def summary():
+@limiter.limit(READ_LIMIT)
+def summary(request: Request):
     records = _load_scored()
     today = date.today()
     risk_counts = {level: sum(r["risk_level"] == level for r in records) for level in ["Low", "Medium", "High"]}
@@ -137,7 +144,7 @@ def summary():
 
 
 @app.post("/cache/invalidate")
-@limiter.limit("10/minute")
-def cache_invalidate(request: Request) -> dict[str, str]:
+@limiter.limit(ADMIN_LIMIT)
+def cache_invalidate(request: Request, _admin: AdminUser) -> dict[str, str]:
     invalidate_cache()
     return {"status": "ok", "message": "cache invalidated"}

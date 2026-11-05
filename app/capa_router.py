@@ -18,10 +18,11 @@ GET /capas/{capa_id}/audit-trail
     Return the full audit history for a single CAPA, newest-first.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from datetime import datetime
 
+from fastapi import APIRouter, HTTPException, Query, Request
+
+from app.auth import CAPA_ACTION_ROLES, CurrentUser, authorize_action, resolve_actor
 from app.audit_db import (
     CapaNotFoundError,
     EffectivenessCheckIncompleteError,
@@ -41,10 +42,10 @@ from app.cache import get_cached_scored_capas, invalidate_cache
 from app.capa_scoring import score_capa
 from app.database import fetch_capas
 from app.logger import setup_logger
+from app.rate_limit import limiter
 from app.models import CapaListResponse, CapaResponse
 
 logger = setup_logger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(tags=["CAPA"])
 
@@ -128,7 +129,7 @@ def get_capa(request: Request, capa_id: str):
     summary="Record a review action on a CAPA",
     description=(
         "Appends an immutable audit event and updates the CAPA's status. "
-        "Actor and action are required. Returns HTTP 409 if the requested "
+        "Requires a bearer token; the actor is the authenticated user. Returns HTTP 409 if the requested "
         "action is not permitted from the current status, or if it would "
         "close the CAPA before effectiveness_check_complete is true. "
         "Complies with 21 CFR Part 11 / ALCOA+ traceability requirements."
@@ -139,12 +140,15 @@ async def review_capa(
     request: Request,
     capa_id: str,
     body: CapaReviewActionRequest,
+    user: CurrentUser,
 ) -> CapaAuditEventResponse:
     """Record a review action for a CAPA.
 
     Args:
         capa_id: Target CAPA identifier.
-        body: Review action payload (action, actor, optional comment).
+        body: Review action payload (action, optional comment; ``actor`` is
+            deprecated and, if sent, must equal the authenticated user).
+        user: Authenticated user (bearer token); becomes the audit actor.
 
     Returns:
         The newly created audit event.
@@ -155,6 +159,9 @@ async def review_capa(
             closing the CAPA before its effectiveness check is complete.
         HTTPException 500: Database error.
     """
+    authorize_action(user, body.action, CAPA_ACTION_ROLES)
+    actor = resolve_actor(user, body.actor)
+
     try:
         try:
             previous_status, new_status = transition_capa_status(
@@ -204,7 +211,7 @@ async def review_capa(
 
         event_id, created_at = insert_audit_event(
             action=body.action,
-            actor=body.actor,
+            actor=actor,
             capa_id=capa_id,
             comment=body.comment,
             previous_status=previous_status,
@@ -218,7 +225,7 @@ async def review_capa(
         invalidate_cache()
         logger.info(
             f"Audit event #{event_id}: capa={capa_id} "
-            f"action={body.action} actor={body.actor} "
+            f"action={body.action} actor={actor} "
             f"{previous_status!r} → {new_status!r}"
         )
 
@@ -226,11 +233,11 @@ async def review_capa(
             event_id=event_id,
             capa_id=capa_id,
             action=body.action,
-            actor=body.actor,
+            actor=actor,
             comment=body.comment,
             previous_status=previous_status,
             new_status=new_status,
-            created_at=created_at,
+            created_at=datetime.fromisoformat(created_at),
         )
 
     except HTTPException:

@@ -57,7 +57,7 @@ In GxP manufacturing, unreviewed deviations and stalled corrective/preventive ac
 | **Data Pipeline & SQL** | Synthetic CSV → SQLite staging with schema constraints, indexes, and validated ingestion for **deviations and CAPA** |
 | **SQL Transformations** | `sql/transformations.sql` — analytics-ready `fact_deviation_events` / `fact_capa_lifecycle` views (overdue flags, aging, severity weights) applied on every startup |
 | **21 CFR Part 11 / Audit Trail** | Append-only `audit_log` table; `AuditMiddleware` logs every mutating HTTP request; UTC server-generated timestamps — never client-supplied |
-| **ALCOA+ Data Integrity** | Attributable (actor header), Legible, Contemporaneous, Original, Accurate — modeled in schema and API layer |
+| **ALCOA+ Data Integrity** | Attributable (actor from the verified JWT), Legible, Contemporaneous, Original, Accurate — modeled in schema and API layer |
 | **Explainable Risk Scoring** | Independently versioned, rule-based scorers for deviations **and CAPA**; every response returns `risk_reasons[]` so reviewers can evaluate — not blindly accept — the output |
 | **Data Quality Engineering** | Unique-ID, required-field, valid-date, and allowed-value checks for both datasets (`GET /data-quality`, `GET /capas/data-quality`) |
 | **Quality Metrics** | `GET /metrics` — aging, recurrence, severity distribution, CAPA closure rate, and root-cause breakdown, computed live |
@@ -112,7 +112,7 @@ cd quality-deviation-risk-monitor
 # 2. Backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt   # runtime; use requirements-dev.txt for tests/lint
 uvicorn app.main:app --reload
 # → API at http://127.0.0.1:8000
 # → Swagger UI (interactive API docs) at http://127.0.0.1:8000/docs
@@ -150,15 +150,30 @@ docker compose --profile dashboard up --build
 | `/health` | GET | Service state + version + synthetic-data boundary confirmation |
 | `/deviations` | GET | Scored deviations; filterable by `risk_level` and `review_status` |
 | `/deviations/{id}` | GET | Single record with explainable `risk_reasons[]` |
-| `/deviations/{id}/review` | POST | Record review action (`acknowledge` / `investigate` / `close`) — appends to audit log |
+| `/auth/token` | POST | Log in with a demo account, returns a bearer JWT (10/min) |
+| `/auth/me` | GET | Identity and role of the current token |
+| `/deviations/{id}/review` | POST | **Auth required.** Record review action (`acknowledge` / `investigate` / `close`) — appends to audit log; actor = token subject |
 | `/summary` | GET | Queue counts, overdue items, unassigned records |
 | `/capas` | GET | Scored CAPA records with `aging_days`; filterable by `risk_level` and `status` |
 | `/capas/{id}` | GET | Single CAPA record with explainable `risk_reasons[]` |
+| `/capas/{id}/review` | POST | **Auth required.** Record CAPA action (`start` / `submit_for_effectiveness_check` / `close`) |
 | `/data-quality` | GET | Deviation dataset quality report (unique IDs, required fields, valid dates, allowed values) |
 | `/capas/data-quality` | GET | CAPA dataset quality report — same checks as above |
 | `/metrics` | GET | Aggregated aging, recurrence, severity, CAPA closure, and root-cause metrics |
 | `/audit-log` | GET | Full immutable audit log, newest-first; filterable by `deviation_id` |
-| `/cache/invalidate` | POST | Manual cache invalidation |
+| `/cache/invalidate` | POST | **Admin only.** Manual cache invalidation |
+
+### Authentication and roles
+
+Mutating endpoints require `Authorization: Bearer <token>`. Read endpoints stay public (synthetic data). Get a token from `POST /auth/token`:
+
+| Demo account | Password | Role | May do |
+|---|---|---|---|
+| `reviewer.demo` | `ReviewerDemo!2026` | reviewer | `acknowledge`, `investigate`, CAPA `start` / `submit_for_effectiveness_check` |
+| `quality.demo` | `QualityDemo!2026` | quality_manager | all of the above plus `close` |
+| `admin.demo` | `AdminDemo!2026` | admin | everything, including `POST /cache/invalidate` |
+
+The audit `actor` is always the token subject. A body `actor` is optional and, if sent, must match the token (otherwise 403); `X-Actor` is ignored. Configuration: `JWT_SECRET_KEY` (mandatory, 32+ chars, when `ENVIRONMENT` is `production`/`prod`/`staging`), `JWT_EXPIRES_MINUTES` (default 60), `ENVIRONMENT`. Demo credentials are synthetic; see [SECURITY.md](SECURITY.md).
 
 > Full interactive docs auto-generated at `/docs` (Swagger UI) and `/redoc` — run the project locally to explore.
 
@@ -239,7 +254,7 @@ Every `POST /deviations/{id}/review` appends one immutable row. `AuditMiddleware
 
 | Field | Description |
 |---|---|
-| `actor` | Required reviewer identifier (`X-Actor` header or request body) — Attributable. **Not authenticated**: the value is self-asserted by the client, so the trail is attributable by convention only (see Security) |
+| `actor` | Authenticated username taken from the verified JWT subject — Attributable. Body `actor` and `X-Actor` are never trusted. Demo accounts only: there is no identity provider or electronic signature (see Security) |
 | `action` | `acknowledge` / `investigate` / `close` / `METHOD /path` |
 | `previous_status` / `new_status` | Before-and-after workflow state |
 | `comment` | Optional rationale or request-body snapshot (max 1,000 chars) |
@@ -290,7 +305,7 @@ This is a **learning and portfolio artifact** built to demonstrate GxP-relevant 
 
 - Formal IQ/OQ/PQ validation with test protocols and sign-off
 - Requirements Traceability Matrix (RTM)
-- Role-based access control and user authentication
+- A real identity provider (SSO/MFA), user lifecycle management and electronic signatures (the demo ships JWT + 3 synthetic roles only)
 - Change control documentation and version locking
 - Security assessment and penetration testing
 - Governed SOPs and procedural controls

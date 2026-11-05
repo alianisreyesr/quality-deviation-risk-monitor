@@ -11,7 +11,8 @@ silently going unaudited.
 Complies with 21 CFR Part 11 / ALCOA+ requirements:
 - Immutable, append-only log (no UPDATE/DELETE on audit_log)
 - UTC timestamps on every record
-- Actor identity required on POST /deviations/{id}/review
+- Actor identity taken from the verified bearer token (never from the body
+  or a client-supplied header)
 - IP address and User-Agent captured for traceability
 """
 
@@ -23,13 +24,16 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from app.audit_db import insert_audit_event
+from app.auth import decode_token
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 # Paths that are NOT subject to audit logging (infrastructure, not data)
-EXCLUDED_PATHS = {"/docs", "/openapi.json", "/redoc"}
+# /auth/token is excluded so credentials in the request body can never be
+# persisted into the audit log.
+EXCLUDED_PATHS = {"/docs", "/openapi.json", "/redoc", "/auth/token"}
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
@@ -38,7 +42,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
     Captures:
     - path, method, HTTP status code
-    - actor (from X-Actor header or request body 'actor' field)
+    - actor (verified bearer-token subject; "anonymous" if no valid token)
     - request body snapshot (truncated to 2 000 chars)
     - client IP address and User-Agent
     - response latency (milliseconds)
@@ -59,20 +63,16 @@ class AuditMiddleware(BaseHTTPMiddleware):
         # Read and buffer request body so downstream handlers can also read it
         raw_body = await request.body()
         body_snapshot: str | None = None
-        actor: str | None = None
 
         if raw_body:
             try:
-                parsed = json.loads(raw_body)
-                body_snapshot = json.dumps(parsed)[:2000]
-                actor = parsed.get("actor") if isinstance(parsed, dict) else None
+                body_snapshot = json.dumps(json.loads(raw_body))[:2000]
             except (json.JSONDecodeError, ValueError):
                 body_snapshot = raw_body.decode(errors="replace")[:2000]
 
-        # Fall back to X-Actor header (bounded to match the body 'actor'
-        # field's max_length so an oversized header can't bloat audit_log)
-        if not actor:
-            actor = request.headers.get("X-Actor", "unknown")[:100]
+        # The actor comes only from a verified token. Body 'actor' fields and
+        # the legacy X-Actor header are self-asserted and therefore ignored.
+        actor = _authenticated_actor(request)
 
         response = await call_next(request)
 
@@ -108,6 +108,16 @@ class AuditMiddleware(BaseHTTPMiddleware):
             logger.error(f"Audit middleware failed to log event: {exc}")
 
         return response
+
+
+def _authenticated_actor(request: Request) -> str:
+    """Return the verified token subject, or "anonymous" without a valid token."""
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() == "bearer" and token:
+        user = decode_token(token.strip())
+        if user is not None:
+            return user.username[:100]
+    return "anonymous"
 
 
 def _extract_deviation_id(path: str) -> str | None:

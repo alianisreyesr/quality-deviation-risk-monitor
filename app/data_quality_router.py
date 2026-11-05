@@ -10,15 +10,13 @@ quality control system and must not be used for regulated decisions.
 """
 
 from fastapi import APIRouter, HTTPException, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.data_quality import build_capa_data_quality_report, build_data_quality_report
 from app.logger import setup_logger
+from app.rate_limit import limiter
 from app.models import DataQualityResponse
 
 logger = setup_logger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(tags=["Data Quality"])
 

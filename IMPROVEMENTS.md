@@ -3,7 +3,7 @@
 ## Overview
 This document tracks enhancements to the Quality Deviation Risk Monitor, focusing on reliability, performance, security, observability, and maintainability.
 
-**Current status:** 202 tests · CI on every push · CAPA risk/aging module · Quality metrics endpoint · Rate limiting · Caching · Audit middleware · Structured logging
+**Current status:** 222 tests · CI on every push · CAPA risk/aging module · Quality metrics endpoint · Rate limiting · Caching · Audit middleware · Structured logging
 
 ---
 
@@ -11,11 +11,19 @@ This document tracks enhancements to the Quality Deviation Risk Monitor, focusin
 
 ### Rate Limiting
 - **Implementation**: `slowapi` with per-IP rate limiting
+- **One shared limiter** (`app/rate_limit.py`) is used by every router; limits are per client IP and process-local
 - **Limits**:
-  - General endpoints (`/deviations`, `/summary`, `/health`, `/deviations/{id}`): **100 requests/minute**
-  - Cache invalidation (`/cache/invalidate`): **10 requests/minute** (stricter)
+  - Reads (`/deviations`, `/deviations/{id}`, `/summary`, `/capas`, `/capas/{id}`): **100 requests/minute**
+  - `/health`: 120/minute; `/data-quality`, `/capas/data-quality`, `/metrics`: 30/minute
+  - Audit-trail and audit-log reads: 60/minute; review actions (deviations and CAPAs): 30/minute
+  - Login (`/auth/token`) and cache invalidation (`/cache/invalidate`): **10 requests/minute** (stricter)
 - **Response**: 429 Too Many Requests when exceeded
-- Configurable in `app/main.py`
+- Constants live in `app/rate_limit.py`; `RATE_LIMIT_ENABLED=false` disables limiting (tests only)
+
+### Authentication & RBAC
+- JWT bearer tokens (`POST /auth/token`), roles `reviewer` / `quality_manager` / `admin`
+- Audit `actor` comes from the verified token; body `actor` must match and `X-Actor` is ignored
+- `JWT_SECRET_KEY` is mandatory (32+ chars) when `ENVIRONMENT` is production-like
 
 ### Input Validation
 - Query parameters validated (risk level restricted to `Low` | `Medium` | `High`)
@@ -129,7 +137,7 @@ See `requirements.txt` / `requirements-prod.txt` for pinned versions.
 - [x] Health checks
 - [x] CI pipeline
 - [ ] Monitoring (Prometheus / similar)
-- [ ] Authentication / RBAC (beyond X-Actor header)
+- [x] Authentication / RBAC (JWT demo; no IdP, MFA or e-signatures)
 - [ ] PostgreSQL (or other production DB)
 - [ ] Request tracing (OpenTelemetry)
 - [ ] Tight CORS configuration for production hosts
@@ -139,7 +147,7 @@ See `requirements.txt` / `requirements-prod.txt` for pinned versions.
 ## 10. 🚀 Future Improvements
 
 1. **Async DB** — `aiosqlite` or async SQLAlchemy
-2. **Auth** — real authentication + role-based access (Part 11 style)
+2. **Auth** — external identity provider, MFA, token revocation, e-signatures (JWT + RBAC demo is done)
 3. **Export** — CSV/PDF export of audit log and deviation reports
 4. **Notifications** — optional Slack/email for high-risk items
 5. **WebSockets** — real-time queue updates

@@ -62,7 +62,7 @@ class RequestMetricsMiddleware:
             await self.app(scope, receive, send_wrapper)
         finally:
             route = scope.get("route")
-            route_path = getattr(route, "path", scope.get("path", "unknown"))
+            route_path = str(getattr(route, "path", scope.get("path", "unknown")))
             if route_path != "/internal/metrics":
                 REQUEST_METRICS.observe(scope["method"], route_path, status, time.perf_counter() - started)
 

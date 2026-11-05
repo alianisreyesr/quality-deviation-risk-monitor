@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.cache import CachedScoredDeviations, get_cached_scored, invalidate_cache
 from app.main import app
+from tests.conftest import auth_headers
 
 client = TestClient(app)
 
@@ -90,11 +91,11 @@ def test_get_cached_scored_does_not_call_loader_on_hit():
 # ---------------------------------------------------------------------------
 
 def test_cache_invalidate_endpoint_returns_200():
-    response = client.post("/cache/invalidate")
+    response = client.post("/cache/invalidate", headers=auth_headers("admin"))
     assert response.status_code == 200
 
 
 def test_cache_invalidate_endpoint_response_shape():
-    response = client.post("/cache/invalidate")
+    response = client.post("/cache/invalidate", headers=auth_headers("admin"))
     data = response.json()
     assert "message" in data or "status" in data or "detail" in data

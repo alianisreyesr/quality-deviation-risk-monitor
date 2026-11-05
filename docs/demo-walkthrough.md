@@ -70,16 +70,23 @@ Metabase dashboard.
 ## 7. Reviewer workflow + audit trail
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/deviations/DEV-1002/review \
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"action": "acknowledge", "actor": "demo.reviewer", "comment": "Demo walkthrough"}' \
+  -d '{"username": "reviewer.demo", "password": "ReviewerDemo!2026"}' \
+  | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])")
+
+curl -s -X POST http://127.0.0.1:8000/deviations/DEV-1002/review \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "acknowledge", "comment": "Demo walkthrough"}' \
   | python3 -m json.tool
 
 curl -s "http://127.0.0.1:8000/deviations/DEV-1002/audit-trail" | python3 -m json.tool
 ```
 
-Shows the append-only audit event: actor, previous/new status, and a
-server-generated UTC timestamp — never client-supplied.
+Shows the append-only audit event: actor (taken from the token, here
+`reviewer.demo`), previous/new status, and a server-generated UTC timestamp —
+never client-supplied.
 
 ## 8. Interactive API docs
 

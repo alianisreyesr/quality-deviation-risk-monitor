@@ -32,5 +32,5 @@ At application initialization, the schema creates `audit_log` when absent and in
 
 - Audit events are append-only; no application helper updates or deletes `audit_log` rows.
 - Timestamps are generated server-side in UTC.
-- The actor and action are required.
+- The actor is the verified bearer-token subject (never the request body or `X-Actor`); the action is required.
 - A correlation ID supports investigation across related events without replacing the immutable event ID.

@@ -17,10 +17,11 @@ GET /audit-log
     Optional ?deviation_id= query param to filter by deviation.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from datetime import datetime
 
+from fastapi import APIRouter, HTTPException, Query, Request
+
+from app.auth import DEVIATION_ACTION_ROLES, CurrentUser, authorize_action, resolve_actor
 from app.audit_db import (
     DeviationNotFoundError,
     TransitionNotAllowedError,
@@ -37,9 +38,9 @@ from app.audit_models import (
 )
 from app.cache import invalidate_cache
 from app.logger import setup_logger
+from app.rate_limit import WRITE_LIMIT, limiter
 
 logger = setup_logger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(tags=["Audit Trail"])
 
@@ -75,31 +76,38 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     summary="Record a review action on a deviation",
     description=(
         "Appends an immutable audit event and updates the deviation's "
-        "review_status. Actor and action are required. Returns HTTP 409 if the "
-        "requested action is not permitted from the current status. "
+        "review_status. Requires a bearer token; the actor is the authenticated user. "
+        "Returns HTTP 409 if the requested action is not permitted from the current status. "
         "Complies with 21 CFR Part 11 / ALCOA+ traceability requirements."
     ),
 )
-@limiter.limit("30/minute")
+@limiter.limit(WRITE_LIMIT)
 async def review_deviation(
     request: Request,
     deviation_id: str,
     body: ReviewActionRequest,
+    user: CurrentUser,
 ) -> AuditEventResponse:
     """Record a review action for a deviation.
 
     Args:
         deviation_id: Target deviation identifier.
-        body: Review action payload (action, actor, optional comment).
+        body: Review action payload (action, optional comment; ``actor`` is
+            deprecated and, if sent, must equal the authenticated user).
+        user: Authenticated user (bearer token); becomes the audit actor.
 
     Returns:
         The newly created audit event.
 
     Raises:
+        HTTPException 401/403: Missing/invalid token, or role not permitted.
         HTTPException 404: Deviation not found.
         HTTPException 409: Transition not permitted from current status.
         HTTPException 500: Database error.
     """
+    authorize_action(user, body.action, DEVIATION_ACTION_ROLES)
+    actor = resolve_actor(user, body.actor)
+
     try:
         # --- Validate and apply the transition atomically ---
         # transition_deviation_status takes SQLite's write lock before it
@@ -138,7 +146,7 @@ async def review_deviation(
 
         event_id, created_at = insert_audit_event(
             action=body.action,
-            actor=body.actor,
+            actor=actor,
             deviation_id=deviation_id,
             comment=body.comment,
             previous_status=previous_status,
@@ -152,7 +160,7 @@ async def review_deviation(
         invalidate_cache()
         logger.info(
             f"Audit event #{event_id}: deviation={deviation_id} "
-            f"action={body.action} actor={body.actor} "
+            f"action={body.action} actor={actor} "
             f"{previous_status!r} → {new_status!r}"
         )
 
@@ -160,11 +168,11 @@ async def review_deviation(
             event_id=event_id,
             deviation_id=deviation_id,
             action=body.action,
-            actor=body.actor,
+            actor=actor,
             comment=body.comment,
             previous_status=previous_status,
             new_status=new_status,
-            created_at=created_at,
+            created_at=datetime.fromisoformat(created_at),
         )
 
     except HTTPException:

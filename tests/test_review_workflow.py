@@ -13,6 +13,7 @@ Covers:
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import auth_headers
 from app.audit_db import fetch_audit_log, update_deviation_status
 from app.database import fetch_deviations
 
@@ -40,7 +41,9 @@ def _review(deviation_id: str, action: str, actor: str = "test.user", comment: s
     payload: dict = {"action": action, "actor": actor}
     if comment:
         payload["comment"] = comment
-    return client.post(f"/deviations/{deviation_id}/review", json=payload)
+    return client.post(
+        f"/deviations/{deviation_id}/review", json=payload, headers=auth_headers("admin", actor)
+    )
 
 
 def _first_id() -> str:
@@ -196,9 +199,9 @@ def test_audit_trail_not_found_returns_404():
 def test_audit_trail_reflects_new_event():
     dev_id = _id_at(0)
     _force_status(dev_id, "Open")
-    before = client.get(f"/deviations/{dev_id}/audit-trail").json()["event_count"]
+    before = client.get(f"/deviations/{dev_id}/audit-trail?limit=500").json()["event_count"]
     _review(dev_id, "acknowledge", actor="trail.tester")
-    after = client.get(f"/deviations/{dev_id}/audit-trail").json()["event_count"]
+    after = client.get(f"/deviations/{dev_id}/audit-trail?limit=500").json()["event_count"]
     assert after == before + 1
 
 
@@ -206,15 +209,21 @@ def test_audit_trail_reflects_new_event():
 # Input validation
 # ---------------------------------------------------------------------------
 
-def test_missing_actor_returns_422():
+def test_missing_body_actor_is_accepted_and_uses_token_identity():
     dev_id = _first_id()
-    r = client.post(f"/deviations/{dev_id}/review", json={"action": "acknowledge"})
-    assert r.status_code == 422
+    _force_status(dev_id, "Open")
+    r = client.post(
+        f"/deviations/{dev_id}/review",
+        json={"action": "acknowledge"},
+        headers=auth_headers("reviewer", "token.user"),
+    )
+    assert r.status_code == 200
+    assert r.json()["actor"] == "token.user"
 
 
 def test_invalid_action_returns_422():
     dev_id = _first_id()
-    r = client.post(f"/deviations/{dev_id}/review", json={"action": "approve", "actor": "x"})
+    r = client.post(f"/deviations/{dev_id}/review", json={"action": "approve", "actor": "x"}, headers=auth_headers("admin", "x"))
     assert r.status_code == 422
 
 
