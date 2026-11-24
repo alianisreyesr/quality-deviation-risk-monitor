@@ -1,6 +1,6 @@
 # Pharma Data Engineering Portfolio
 
-**Alianis Reyes Reyes** · Information Systems @ UPRM (Dec 2026) · Eli Lilly Tech@Lilly Alumni
+**Alianis Reyes Reyes** · Information Systems @ UPRM (Dec 2026)
 
 [LinkedIn](https://www.linkedin.com/in/alianis-reyes-reyes/) · [GitHub](https://github.com/alianisreyesr)
 
@@ -119,7 +119,6 @@ Risk-based software assurance planning aligned to FDA CSA Guidance (2022) and GA
 
 ## Differentiators
 
-- **Eli Lilly alumni (Tech@Lilly / OcyonBio)** — worked inside a regulated pharma environment; understands real GxP constraints, not just the theory
 - **Regulatory depth** — every project cites specific FDA, MHRA, PIC/S, EU GMP guidance; not generic "compliance-aware"
 - **Full-stack + pipeline** — FastAPI backend, React frontend, dbt transformations, Docker, CI/CD; covers data engineering AND quality systems
 - **CI-enforced quality** — coverage gates, SAST, dependency audits on every push; demonstrates production engineering discipline
