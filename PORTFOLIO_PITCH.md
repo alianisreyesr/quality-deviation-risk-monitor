@@ -1,6 +1,6 @@
 # Pharma Data Engineering Portfolio
 
-**Alianis Reyes-Reyes** · Information Systems @ UPRM (Dec 2026) · Eli Lilly Tech@Lilly Alumni
+**Alianis Reyes Reyes** · Information Systems @ UPRM (Dec 2026) · Eli Lilly Tech@Lilly Alumni
 
 [LinkedIn](https://www.linkedin.com/in/alianis-reyes-reyes/) · [GitHub](https://github.com/alianisreyesr)
 
