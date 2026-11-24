@@ -108,7 +108,7 @@ Enable a quality reviewer to ingest or inspect synthetic deviations, understand 
 
 ### Phase 5 — Portfolio Presentation
 
-**Objective:** Make the project easy for recruiters and hiring managers to evaluate quickly.
+**Objective:** Make the project easy for technical reviewers to evaluate quickly.
 
 **Work items:**
 
