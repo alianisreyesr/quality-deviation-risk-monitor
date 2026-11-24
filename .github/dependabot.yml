@@ -1,10 +1,13 @@
 # Monthly cadence; minor/patch updates are grouped into one PR per ecosystem.
 # Major-version bumps stay as individual PRs so they can be reviewed on their own.
+# `cooldown` skips releases younger than 7 days to avoid chasing every new release.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: "/"
     schedule: { interval: monthly }
+    cooldown:
+      default-days: 7
     groups:
       minor-and-patch:
         update-types:
@@ -13,6 +16,8 @@ updates:
   - package-ecosystem: npm
     directory: "/frontend"
     schedule: { interval: monthly }
+    cooldown:
+      default-days: 7
     groups:
       minor-and-patch:
         update-types:
@@ -21,6 +26,8 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule: { interval: monthly }
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:
