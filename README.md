@@ -14,7 +14,7 @@
 
 **GxP · CSV · 21 CFR Part 11 · ALCOA+ · Data Integrity · Audit Trail · CAPA**
 
-*A portfolio-safe, full-stack prototype for pharmaceutical Quality Data Engineering*
+*Explainable deviation risk scoring, CAPA workflow and audit trail for pharmaceutical quality data — full-stack prototype (synthetic data)*
 
 [Screenshots](#portfolio-preview) · [Quick Start](#quick-start) · [Case study](docs/CASE_STUDY.md) · [Architecture](docs/architecture.md) · [Data Model](docs/data-dictionary.md) · [Risk Rules](docs/risk-rules.md) · [Metrics & Dashboard](docs/dashboard.md) · [Demo Walkthrough](docs/demo-walkthrough.md) · [Security](SECURITY.md)
 

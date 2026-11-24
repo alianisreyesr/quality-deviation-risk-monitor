@@ -98,7 +98,7 @@ Risk-based software assurance planning aligned to FDA CSA Guidance (2022) and GA
 
 ---
 
-## Skills Matrix — JD Alignment
+## Skills matrix
 
 | Skill | Where Demonstrated |
 |---|---|
@@ -117,27 +117,12 @@ Risk-based software assurance planning aligned to FDA CSA Guidance (2022) and GA
 
 ---
 
-## Target Roles
-
-| Priority | Role | Why It Fits |
-|---|---|---|
-| 1 | Quality Data Engineer / CSV Analyst (Pharma) | All 6 repos built around this JD |
-| 2 | Data Engineer / Analytics Engineer (Entry-level) | Batch Pipeline, FastAPI REST, dbt |
-| 3 | IT Audit / Compliance / GRC | Change Control, CSA Planner, audit trail pattern |
-| 4 | Business Intelligence / Power BI | SQL foundation, data quality, pipeline patterns |
-| 5 | Automation Analyst | CI/CD pipelines, API automation, Docker |
-
-**Target companies:** Eli Lilly (Indiana) · Amgen (Juncos, PR) · Pfizer · Roche · J&J · Novartis · Medtronic · Onebridge · Moser Consulting
-
----
-
 ## Differentiators
 
 - **Eli Lilly alumni (Tech@Lilly / OcyonBio)** — worked inside a regulated pharma environment; understands real GxP constraints, not just the theory
 - **Regulatory depth** — every project cites specific FDA, MHRA, PIC/S, EU GMP guidance; not generic "compliance-aware"
 - **Full-stack + pipeline** — FastAPI backend, React frontend, dbt transformations, Docker, CI/CD; covers data engineering AND quality systems
 - **CI-enforced quality** — coverage gates, SAST, dependency audits on every push; demonstrates production engineering discipline
-- **December 2026 graduation** — available for full-time roles starting Jan 2027; available for co-ops / internships immediately
 
 ---
 
